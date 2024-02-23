@@ -21,14 +21,34 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
         logging.error(f'Pronoun mismatch: {response_tokens[pronoun_index]} != {found_pronoun}')
         return response
     
+    # Ensure predicted_noun is a string
+    if isinstance(predicted_noun, list):
+        if len(predicted_noun) > 0:
+            predicted_noun = predicted_noun[0]  # Use the first item if it's a list
+        else:
+            logging.error('Predicted noun list is empty.')
+            return response
+    
+    logging.info(f'response_tokens: {response_tokens}')
+    logging.info(f'predicted_noun: {predicted_noun}')
+    logging.info(f'found_pronoun: {found_pronoun}')
+    logging.info(f'pronoun_index: {pronoun_index}')
     # Replace the pronoun with the predicted noun
     response_tokens[pronoun_index] = predicted_noun
     # Join the tokens to form the new response
     new_response = ' '.join(response_tokens)
+    logging.info(f'new_response: {new_response}')
     return new_response
 
+def write_jsonl(data, file_path):
+    """
+    Write data to a JSONL file.
+    """
+    with open(file_path, 'w') as f:
+        for item in data:
+            f.write(json.dumps(item) + '\n')
 
-def resolve_coref_with_augwow(augwow, coref_data, output_file):
+def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
     """
     Resolve coreference problems in AugWoW examples using the provided coreference data.
     """
@@ -38,43 +58,66 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file):
     # Read samples in augwow and check id with the key in coref_data, if match, replace the pronoun with the value of the coref_data.
     # But, if the value in the coref_data is 'empty', then keep the original pronoun.
     # Count the number of samples with resolved pronouns when processing above.
-    resolved_examples = []
+    resolved_examples = [] # Resolved examples : all information from augwow and new_response
+    resolved_samples = [] # Resolved samples : only new_response and the original augwow
     resolved_count = 0
+    '''one example in /data/scratch/acw722/corefbert/result/resolved_data/augwow_with_pronouns.jsonl
+    
+    qas_id: "1845___2_antadj_195168"
+    question_text: "Considering the context, 'League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !', how is 'It' utilized or defined?"
+    doc_tokens: ["I", "love", "the", "game", "League", "of", "Legends!", "Have", "you", "ever", "heard", "of", "it", "or", "played", "it", "before?", "I", "think", "I've", "heard", "the", "name", "but", "I", "know", "nothing", "about", "it."]
+    is_impossible: false
+    orig_answer_text: ""
+    start_position: -1
+    end_position: -1
+    found_pronoun: "It"
+    orig_response: "League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !"
+    new_response: ""
+    context_text: ["I love the game League of Legends! Have you ever heard of it or played it before?", "I think I've heard the name but I know nothing about it."]
+    pronoun_index: 16
+    predicted_pronoun: null
+    item: 
+        id: "1845___2_antadj"
+        evidence: [["League of Legends", 0, "League of Legends (abbreviated LoL) is a multiplayer online battle arena video game developed and published by Riot Games for Microsoft Windows and macOS.", 1]]
+        claim: "[CONTEXT]: I love the game League of Legends! Have you ever heard of it or played it before? [EOT] I think I've heard the name but I know nothing about it. [RESPONSE]: League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !"
+        context: ["I love the game League of Legends! Have you ever heard of it or played it before?", "I think I've heard the name but I know nothing about it."]
+        label: "REFUTES"
+        original_claim: "League is a multiplayer online battle arena game , made by Riot games . It 's one of the top online games in the world at the moment !"
+
     '''
-    - one example in augwow:
-    {"qas_id": "1845___2_antadj_195168", 
-    "question_text": "Considering the context, 'League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !', how is 'It' utilized or defined?", 
-    "doc_tokens": ["I", "love", "the", "game", "League", "of", "Legends!", "Have", "you", "ever", "heard", "of", "it", "or", "played", "it", "before?", "I", "think", "I've", "heard", "the", "name", "but", "I", "know", "nothing", "about", "it."], 
-    "is_impossible": false, "orig_answer_text": "", "start_position": -1, "end_position": -1, 
-    "found_pronoun": "It", "orig_response": "", "new_response": null, 
-    "context_text": ["I love the game League of Legends! Have you ever heard of it or played it before?", "I think I've heard the name but I know nothing about it."], 
-    "pronoun_index": 16, "predicted_pronoun": null, "item": {}}
-    '''
-    for idx, item in enumerate(augwow):
-        item_id = item['qas_id']
+    augwow = augwow[:10]
+    for idx, sample in enumerate(augwow):
+        from pprint import pprint
+        
+        item_id = sample['qas_id']
         predicted_noun = coref_data.get(item_id, None) # Coreference Noun
-        if predicted_noun and item['pronoun_index'] != -1: # If the item_id is in coref_data, replace the pronoun with the predicted noun
+        # print(f'predicted_noun: {predicted_noun}')
+        if sample['pronoun_index'] != -1: # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
-            pronoun_index = item['pronoun_index'] # Pronoun index in the original response
-            found_pronoun = item['found_pronoun'] # Pronoun in the original response
-            response = item['orig_response']
+            pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
+            found_pronoun = sample['found_pronoun'] # Pronoun in the original response
+            response = sample['orig_response']
             new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index)
-            item['new_response'] = new_response
-            resolved_examples.append(item)
-        else: # If the item_id is not in coref_data, keep the original pronoun 
-            resolved_examples.append(item)
+            sample['new_response'] = new_response
+            sample['predicted_pronoun'] = predicted_noun
+            sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
+            
+            # Add coreference info in the augwow
+            sample['item']['coref_noun'] = predicted_noun
+            sample['item']['pronoun_idx'] = sample['pronoun_index']
+            sample['item']['found_pronoun'] = sample['found_pronoun']
+            sample['item']['qas_id'] = item_id
+            sample['item']['question_text'] = sample['question_text']
+                
+        resolved_examples.append(sample)
+        resolved_samples.append(sample['item'])
+
     logging.info(f'Resolved {resolved_count} examples.')
     logging.info(f'Wrote resolved examples to {output_file}.')
-    write_jsonl(resolved_examples, output_file)
+    write_jsonl(resolved_examples, preprocess_file)
+    logging.info(f'Wrote resolved samples to {output_file}.')
+    write_jsonl(resolved_samples, output_file)
     
-
-def write_jsonl(data, file_path):
-    """
-    Write data to a JSONL file.
-    """
-    with open(file_path, 'w') as f:
-        for item in data:
-            f.write(json.dumps(item) + '\n')
 
 def read_coref_data(coref_file):
     """
@@ -105,7 +148,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", default=None, type=str, required=True)
     parser.add_argument("--coref_file", default=None, type=str, required=True)
-    parser.add_argument("--output_file", default=None, type=str, required=True)
+    parser.add_argument("--output_file", default=None, type=str, required=True) # 공동참조 해결 후, 바로 훈련에 들어가도되는 데이터
+    parser.add_argument("--preprocess_file", default=None, type=str, required=True) # 공동참조 해결 관련 모든 정보
 
     args = parser.parse_args()
 
@@ -113,7 +157,7 @@ def main():
     examples = read_augwow_examples(args.input_file)
 
     #save resolved examples to output_file
-    resolve_coref_with_augwow(examples, coref_data, args.output_file)
+    resolve_coref_with_augwow(examples, coref_data, args.output_file, args.preprocess_file)
 
 if __name__ == "__main__":
     main()
