@@ -52,9 +52,9 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file):
     '''
     for idx, item in enumerate(augwow):
         item_id = item['qas_id']
-        if coref_data.get(item_id) and item['pronoun_index'] != -1: # If the item_id is in coref_data, replace the pronoun with the predicted noun
+        predicted_noun = coref_data.get(item_id, None) # Coreference Noun
+        if predicted_noun and item['pronoun_index'] != -1: # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
-            predicted_noun = coref_data['item_id'] # Coreference Noun
             pronoun_index = item['pronoun_index'] # Pronoun index in the original response
             found_pronoun = item['found_pronoun'] # Pronoun in the original response
             response = item['orig_response']
