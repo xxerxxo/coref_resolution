@@ -10,37 +10,68 @@ nlp = spacy.load("en_core_web_sm")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+# def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index):
+#     """
+#     Replace the pronoun with the predicted noun in the response.
+#     """
+#     logging.info(f'Replacing {found_pronoun} with {predicted_noun}(idx: {pronoun_index}) in response: {response}')
+#     # Tokenize the response
+#     response_tokens = response.split()
+#     new_response = None
+#     if response_tokens[pronoun_index] != found_pronoun:
+        
+#         logging.error(f'Pronoun mismatch: {response_tokens[pronoun_index]} != {found_pronoun}')
+#         doc = nlp(response)
+#         for i, token in enumerate(doc):
+#             if token.text.lower() == found_pronoun.lower():
+#                 logging.info(f'Pronoun found at index {i}: {token.text} in {doc}. And predicted_noun: {predicted_noun}')
+#                 new_response = doc[:i].text + predicted_noun + doc[i+1:].text
+#                 logging.info(f'new_response: {new_response}')
+#                 return new_response
+    
+#     # Ensure predicted_noun is a string
+#     if isinstance(predicted_noun, list):
+#         if len(predicted_noun) > 0:
+#             predicted_noun = predicted_noun[0]  # Use the first item if it's a list
+#         else:
+#             logging.error('Predicted noun list is empty.')
+#             return new_response
+    
+#     logging.info(f'response_tokens: {response_tokens}')
+#     logging.info(f'predicted_noun: {predicted_noun}')
+#     logging.info(f'found_pronoun: {found_pronoun}')
+#     logging.info(f'pronoun_index: {pronoun_index}')
+#     # Replace the pronoun with the predicted noun
+#     response_tokens[pronoun_index] = predicted_noun
+#     # Join the tokens to form the new response
+#     new_response = ' '.join(response_tokens)
+#     logging.info(f'new_response: {new_response}')
+#     return new_response
+
 def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index):
     """
     Replace the pronoun with the predicted noun in the response.
     """
-    logging.info(f'Replacing {found_pronoun} with {predicted_noun}(idx: {pronoun_index}) in response: {response}')
-    # Tokenize the response
-    response_tokens = response.split()
-    
-    if response_tokens[pronoun_index] != found_pronoun:
-        
-        logging.error(f'Pronoun mismatch: {response_tokens[pronoun_index]} != {found_pronoun}')
-        return None
-    
     # Ensure predicted_noun is a string
-    if isinstance(predicted_noun, list):
-        if len(predicted_noun) > 0:
-            predicted_noun = predicted_noun[0]  # Use the first item if it's a list
-        else:
-            logging.error('Predicted noun list is empty.')
-            return None
-    
-    logging.info(f'response_tokens: {response_tokens}')
-    logging.info(f'predicted_noun: {predicted_noun}')
-    logging.info(f'found_pronoun: {found_pronoun}')
-    logging.info(f'pronoun_index: {pronoun_index}')
-    # Replace the pronoun with the predicted noun
-    response_tokens[pronoun_index] = predicted_noun
-    # Join the tokens to form the new response
-    new_response = ' '.join(response_tokens)
+    if isinstance(predicted_noun, list) and len(predicted_noun) > 0:
+        predicted_noun = predicted_noun[0]  # Use the first item if it's a list
+    elif isinstance(predicted_noun, list) and len(predicted_noun) == 0:
+        logging.error('Predicted noun list is empty.')
+        return response
+
+    # Tokenize the response
+    doc = nlp(response)
+    if pronoun_index >= len(doc) or doc[pronoun_index].text.lower() != found_pronoun.lower():
+        logging.error(f'Pronoun mismatch or index out of range.')
+        return response
+
+    logging.info(f'Replacing {found_pronoun} with {predicted_noun} at index {pronoun_index} in response: {response}')
+    response_tokens = [token.text_with_ws for token in doc]  # Preserve whitespace
+    response_tokens[pronoun_index] = predicted_noun + doc[pronoun_index].whitespace_
+    new_response = ''.join(response_tokens)
     logging.info(f'new_response: {new_response}')
     return new_response
+
 
 def write_jsonl(data, file_path):
     """
@@ -94,16 +125,16 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
         from pprint import pprint
         
         item_id = sample['qas_id']
-        predicted_noun = coref_data.get(item_id, None) # Coreference Noun
+        predicted_noun = coref_data.get(item_id, None)[0] # Coreference Noun, if it's 'empty', then keep the original pronoun
         # print(f'predicted_noun: {predicted_noun}')
-        if sample['pronoun_index'] != -1 and predicted_noun[0] != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
+        if sample['pronoun_index'] != -1 and predicted_noun != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
             pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
             found_pronoun = sample['found_pronoun'] # Pronoun in the original response
             response = sample['orig_response']
             new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index)
 
-            if not new_response:
+            if new_response:
                 sample['new_response'] = new_response
                 sample['predicted_pronoun'] = predicted_noun
                 sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
@@ -115,7 +146,7 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
                 sample['item']['qas_id'] = item_id
                 sample['item']['question_text'] = sample['question_text']
             
-            elif new_response is None:
+            elif not new_response:
                 logging.error(f'Failed to replace pronoun with noun in example {idx}.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                 logging.error(f'Example: {sample}')
                 
