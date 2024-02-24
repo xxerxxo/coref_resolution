@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 #     logging.info(f'new_response: {new_response}')
 #     return new_response
 
-def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index):
+def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id):
     """
     Replace the pronoun with the predicted noun in the response.
     """
@@ -56,20 +56,24 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
     if isinstance(predicted_noun, list) and len(predicted_noun) > 0:
         predicted_noun = predicted_noun[0]  # Use the first item if it's a list
     elif isinstance(predicted_noun, list) and len(predicted_noun) == 0:
-        logging.error('Predicted noun list is empty.')
+        logging.error('Predicted noun list is empty. [item_id: {item_id}]')
         return response
 
     # Tokenize the response
     doc = nlp(response)
     if pronoun_index >= len(doc) or doc[pronoun_index].text.lower() != found_pronoun.lower():
-        logging.error(f'Pronoun mismatch or index out of range.')
+        logging.error(f'Pronoun mismatch or index out of range. [item_id: {item_id}]')
         return response
 
-    logging.info(f'Replacing {found_pronoun} with {predicted_noun} at index {pronoun_index} in response: {response}')
+    # logging.info(f'Replacing {found_pronoun} with {predicted_noun} at index {pronoun_index} in response: {response}')
+
+    # Replace the pronoun with the predicted noun
     response_tokens = [token.text_with_ws for token in doc]  # Preserve whitespace
-    response_tokens[pronoun_index] = predicted_noun + doc[pronoun_index].whitespace_
+    if response_tokens[pronoun_index][0].isupper(): # Capitalize the predicted noun if the pronoun is capitalized
+        predicted_noun = predicted_noun.capitalize()
+        response_tokens[pronoun_index] = predicted_noun + doc[pronoun_index].whitespace_
     new_response = ''.join(response_tokens)
-    logging.info(f'new_response: {new_response}')
+    # logging.info(f'new_response: {new_response}')
     return new_response
 
 
@@ -119,9 +123,9 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
         original_claim: "League is a multiplayer online battle arena game , made by Riot games . It 's one of the top online games in the world at the moment !"
 
     '''
-    augwow = augwow[:100]
+    # augwow = augwow[:100]
     for idx, sample in enumerate(augwow):
-        logging.info(f'[{idx}]'+'*'*50)
+        # logging.info(f'[{idx}]'+'*'*50)
         from pprint import pprint
         
         item_id = sample['qas_id']
@@ -132,7 +136,7 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
             pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
             found_pronoun = sample['found_pronoun'] # Pronoun in the original response
             response = sample['orig_response']
-            new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index)
+            new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
 
             if new_response:
                 sample['new_response'] = new_response
@@ -147,11 +151,12 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
                 sample['item']['question_text'] = sample['question_text']
             
             elif not new_response:
-                logging.error(f'Failed to replace pronoun with noun in example {idx}.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
                 logging.error(f'Example: {sample}')
+                logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
                 
             if idx%10000 == 0:
-                logging.info(f'Processed {idx} examples.'+'*'*50)
+                logging.info(f'*'*50+'Processed {idx} examples.')
                 logging.info(f'Example: {sample}')
                 logging.info('*'*50)
             
