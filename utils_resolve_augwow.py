@@ -14,12 +14,14 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
     """
     Replace the pronoun with the predicted noun in the response.
     """
+    logging.info(f'Replacing {found_pronoun} with {predicted_noun}(idx: {pronoun_index}) in response: {response}')
     # Tokenize the response
     response_tokens = response.split()
     
     if response_tokens[pronoun_index] != found_pronoun:
+        
         logging.error(f'Pronoun mismatch: {response_tokens[pronoun_index]} != {found_pronoun}')
-        return response
+        return None
     
     # Ensure predicted_noun is a string
     if isinstance(predicted_noun, list):
@@ -27,7 +29,7 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
             predicted_noun = predicted_noun[0]  # Use the first item if it's a list
         else:
             logging.error('Predicted noun list is empty.')
-            return response
+            return None
     
     logging.info(f'response_tokens: {response_tokens}')
     logging.info(f'predicted_noun: {predicted_noun}')
@@ -44,6 +46,7 @@ def write_jsonl(data, file_path):
     """
     Write data to a JSONL file.
     """
+    logging.info(f'Writing {len(data)} items to {file_path}.')
     with open(file_path, 'w') as f:
         for item in data:
             f.write(json.dumps(item) + '\n')
@@ -85,38 +88,52 @@ def resolve_coref_with_augwow(augwow, coref_data, output_file, preprocess_file):
         original_claim: "League is a multiplayer online battle arena game , made by Riot games . It 's one of the top online games in the world at the moment !"
 
     '''
-    augwow = augwow[:10]
+    augwow = augwow[:100]
     for idx, sample in enumerate(augwow):
+        logging.info(f'[{idx}]'+'*'*50)
         from pprint import pprint
         
         item_id = sample['qas_id']
         predicted_noun = coref_data.get(item_id, None) # Coreference Noun
         # print(f'predicted_noun: {predicted_noun}')
-        if sample['pronoun_index'] != -1: # If the item_id is in coref_data, replace the pronoun with the predicted noun
+        if sample['pronoun_index'] != -1 and predicted_noun[0] != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
             pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
             found_pronoun = sample['found_pronoun'] # Pronoun in the original response
             response = sample['orig_response']
             new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index)
-            sample['new_response'] = new_response
-            sample['predicted_pronoun'] = predicted_noun
-            sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
-            
-            # Add coreference info in the augwow
-            sample['item']['coref_noun'] = predicted_noun
-            sample['item']['pronoun_idx'] = sample['pronoun_index']
-            sample['item']['found_pronoun'] = sample['found_pronoun']
-            sample['item']['qas_id'] = item_id
-            sample['item']['question_text'] = sample['question_text']
+
+            if not new_response:
+                sample['new_response'] = new_response
+                sample['predicted_pronoun'] = predicted_noun
+                sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
                 
+                # Add coreference info in the augwow
+                sample['item']['coref_noun'] = predicted_noun
+                sample['item']['pronoun_idx'] = sample['pronoun_index']
+                sample['item']['found_pronoun'] = sample['found_pronoun']
+                sample['item']['qas_id'] = item_id
+                sample['item']['question_text'] = sample['question_text']
+            
+            elif new_response is None:
+                logging.error(f'Failed to replace pronoun with noun in example {idx}.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                logging.error(f'Example: {sample}')
+                
+            if idx%10000 == 0:
+                logging.info(f'Processed {idx} examples.'+'*'*50)
+                logging.info(f'Example: {sample}')
+                logging.info('*'*50)
+            
         resolved_examples.append(sample)
         resolved_samples.append(sample['item'])
 
     logging.info(f'Resolved {resolved_count} examples.')
-    logging.info(f'Wrote resolved examples to {output_file}.')
+    
     write_jsonl(resolved_examples, preprocess_file)
-    logging.info(f'Wrote resolved samples to {output_file}.')
+    logging.info(f'Wrote resolved examples to {preprocess_file}.')
+    
     write_jsonl(resolved_samples, output_file)
+    logging.info(f'Wrote resolved samples to be trained rightly to {output_file}.')
     
 
 def read_coref_data(coref_file):
