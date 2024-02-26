@@ -152,9 +152,10 @@ def read_dialfact_examples(input_file):
             qas_id = item_id + '_' + str(idx) # Unique ID for each example for predicting the reference noun to each sample
             
             response = item['response']
+            found_pronoun, pronoun_index = identify_pronouns(response)
+            print(f'found_pronoun: {found_pronoun}, pronoun_index: {pronoun_index}')
             pprint(item)
             print('*'*50)
-            found_pronoun, pronoun_index = identify_pronouns(response)
             if found_pronoun:
                 question_text = construct_question_text(found_pronoun, response)
                 is_impossible=False
@@ -181,7 +182,7 @@ def read_dialfact_examples(input_file):
                 orig_response=response
             )
 
-            if idx % 1 == 0: #augwow has 190k examples
+            if idx % 1000 == 0: #augwow has 190k examples
                 logging.info('*'*50)
                 logging.info(f'[Dialfact index: {idx}] Found pronoun: [{found_pronoun}] at index: [{pronoun_index}] in response: [{response}].')
                 dict_example = squad_example.to_dict()
@@ -190,8 +191,6 @@ def read_dialfact_examples(input_file):
             
             examples.append(squad_example)
             dict_examples.append(squad_example.to_dict())
-
-            if idx == 10: break
 
     logging.info(f'Loaded {len(examples)} examples.')
     logging.info(f'The number of samples with pronoun: {cnt_samples_with_prounoun}, percentage: {cnt_samples_with_prounoun/len(examples)*100:.2f}%')

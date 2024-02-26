@@ -72,9 +72,9 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
     response_tokens = [token.text_with_ws for token in doc]  # Preserve whitespace
     if response_tokens[pronoun_index][0].isupper(): # Capitalize the predicted noun if the pronoun is capitalized
         predicted_noun = predicted_noun.capitalize()
-        response_tokens[pronoun_index] = predicted_noun + doc[pronoun_index].whitespace_
-    new_response = ''.join(response_tokens)
-    # logging.info(f'new_response: {new_response}')
+
+    new_response = ' '.join(response_tokens[:pronoun_index]) + ' ' + predicted_noun + ' ' + ' '.join(response_tokens[pronoun_index+1:])
+    logging.info(f'new_response: {new_response}')
     return new_response
 
 
@@ -126,7 +126,7 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
     '''
     # augwow = augwow[:100]
     for idx, sample in enumerate(examples):
-        # logging.info(f'[{idx}]'+'*'*50)
+        logging.info(f'[{idx}]'+'*'*50)
         item_id = sample['qas_id']
         predicted_noun = coref_data.get(item_id, None)[0] # Coreference Noun, if it's 'empty', then keep the original pronoun
         # print(f'predicted_noun: {predicted_noun}')
@@ -135,13 +135,17 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
             pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
             found_pronoun = sample['found_pronoun'] # Pronoun in the original response
             response = sample['orig_response']
+            # print(f'found_pronoun: {found_pronoun}')
+            # print(f'pronoun_index: {pronoun_index}')
+            # print(f'original response: {response}')
+            # print(f'predicted_noun: {predicted_noun}')
             new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
-
+            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!new_response: {new_response}')
             if new_response:
                 sample['new_response'] = new_response
                 sample['predicted_pronoun'] = predicted_noun
                 
-                ### Change the response with coreference resolved
+                ### Change the response with coreference resolved #############
                 # augwow
                 # sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
                 # dialfact
@@ -159,11 +163,11 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
                 logging.error(f'Example: {sample}')
                 logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
                 
-            if idx%10000 == 0:
+            if idx%1000 == 0:
                 logging.info(f'*'*50+'Processed {idx} examples.')
                 logging.info(f'Example: {sample}')
                 logging.info('*'*50)
-            
+
         resolved_examples.append(sample)
         resolved_samples.append(sample['item'])
 
