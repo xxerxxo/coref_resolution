@@ -48,7 +48,7 @@ from utils_squad import (read_squad_examples, convert_examples_to_features,
                         #  RawResultExtended, write_predictions_extended)
                         RawResult_multi, write_predictions_multi)
 
-from utils_augwow import (read_augwow_examples, resolve_coref_with_augwow)
+from utils_preprocessing import (read_augwow_examples, read_dialfact_examples, resolve_coref_with_augwow)
 # The follwing import is the official SQuAD evaluation script (2.0).
 # You can remove it from the dependencies if you are using this script outside of the library
 # We've added it here for automated tests (see examples/test_examples.py file)
@@ -199,7 +199,7 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, prefix=""):
+def evaluate(args, model, tokenizer, prefix=''):
     '''
     1. Load data features from cache or dataset file: load_and_cache_examples()
     2. Batchify the data and input to model: DataLoader()
@@ -216,6 +216,8 @@ def evaluate(args, model, tokenizer, prefix=""):
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(dataset) if args.local_rank == -1 else DistributedSampler(dataset)
     eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+
+    prefix = args.result_file_tag
 
     # Eval!
     logger.info("***** Running evaluation {} *****".format(prefix))
@@ -308,7 +310,17 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             examples, dict_examples = read_augwow_examples(input_file=input_file)
         
             # store dict_examples as a jsonl in resolved_dir
-            with open(args.resolved_dir+'/augwow_with_pronouns.jsonl', 'w') as f:
+            # 'augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag)
+            with open(args.resolved_dir+'/augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag), 'w') as f:
+                for item in dict_examples:  
+                    f.write(json.dumps(item) + '\n')
+        
+        elif args.task == 'dialfact':
+            examples, dict_examples = read_dialfact_examples(input_file=input_file)
+        
+            # store dict_examples as a jsonl in resolved_dir
+            # 'augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag)
+            with open(args.resolved_dir+'/{}_with_pronouns.jsonl'.format(args.result_file_tag), 'w') as f:
                 for item in dict_examples:  
                     f.write(json.dumps(item) + '\n')
                     
@@ -364,7 +376,7 @@ def main():
 
     ## Other parameters
     parser.add_argument("--result_dir", default=None, type=str, required=False) # 추가: 추론결과 파일 저장 디렉토리, 파인튜닝된 모델경로(output_dir)와 다름
-
+    
     parser.add_argument("--task", default=None, type=str, required=False) # 추가: 작업 선택, squad or augwow
     parser.add_argument("--train_file", default=None, type=str, required=False,
                         help="SQuAD json for training. E.g., train-v1.1.json")
@@ -376,7 +388,8 @@ def main():
                         help="Where do you want to store the pre-trained models downloaded from s3")
     parser.add_argument("--resolved_dir", default="", type=str,
                         help="store the jsonl file with found pronouns.")
-                        
+    parser.add_argument("--result_file_tag", default="", type=str,
+                        help="store the jsonl file with found pronouns.") #predictions_{}.json
 
     # # Additional arguments
     # parser.add_argument("--coref_file", default=None, type=str, required=True,
