@@ -78,9 +78,9 @@ def identify_pronouns(sentence):
     Returns a tuple of the pronoun and its index if found, otherwise ('', -1).
     """
     doc = nlp(sentence)
-    for i, token in enumerate(doc):
+    for idx, token in enumerate(doc):
         if token.text.lower() in PRONOUNS and token.pos_ == 'PRON':
-            return (token.text, i)
+            return (idx, token)
     return ('', -1)
 
 def identify_pronouns(sentence):
@@ -99,46 +99,60 @@ def read_dialfact_examples(input_file):
     dict_examples = []
     logging.info(f'Reading Dialfact examples from {input_file} in read_dialfact_examples().')
     cnt_samples_with_prounoun = 0
+    
+    # [1] READ DIALFACT EXAMPLES
+    original_dialfact = []
     with open(input_file, "r", encoding="utf-8") as reader:
-        for idx, line in enumerate(reader):
-            item = json.loads(line) # Load JSON line - each sample in AugWoW is a JSON line
-            
-            ctx = ' '.join(item['context']) # one string of the context
-            doc_tokens = ctx.split()  # doc_tokens is a list of tokens
-            item_id = item['id']
-            qas_id = item_id + '_' + str(idx) # Unique ID for each example for predicting the reference noun to each sample
-            
-            response = item['response']
-            found_pronoun, pronoun_index = identify_pronouns(response)
-            print(f'found_pronoun: {found_pronoun}, pronoun_index: {pronoun_index}')
-            pprint(item)
-            print('*'*50)
-            if found_pronoun:
-                question_text = construct_question_text(found_pronoun, response)
-                is_impossible=False
+        original_dialfact = [json.loads(line) for idx, line in enumerate(reader)]
+    # [2] Find pronouns in the response & [3] Construct question text & [4] Create SquadExample
+    for sample_idx, sample in enumerate(original_dialfact):
+        response = sample['response']
+        pronoun_info = identify_pronouns(response)
+        if pronoun_info:
+            for pronoun_index, pronoun_text in enumerate(pronoun_info): # idx of pronoun in the response, text of pronoun
+                question_text = construct_question_text(pronoun_text, response) # construct question text with the pronoun
+                qas_id = sample['id'] + '_' + sample_idx + '_' + str(pronoun_index) # Unique ID for each example for predicting the reference noun to each sample
                 cnt_samples_with_prounoun += 1
-            else:
-                question_text = None
-                is_impossible=True
-            
+
+                squad_example = SquadExample(
+                                                qas_id=qas_id,
+                                                question_text=question_text,
+                                                context_text=item['context'],
+                                                
+                                                doc_tokens=doc_tokens,
+                                                found_pronoun=pronoun_text,
+                                                pronoun_index=pronoun_index,
+                                                
+                                                is_impossible=False,
+
+                                                answer_text='', # Not used in inference
+                                                start_position_character=-1, # Not used in inference
+
+                                                item = item, # Store the original item 
+                                                orig_response=response
+                                            )           
+        else: # if NO PRONOUN is found in the response
+            question_text = None
+            is_impossible=True
+
             squad_example = SquadExample(
-                qas_id=qas_id,
-                question_text=question_text,
-                context_text=item['context'],
-                
-                doc_tokens=doc_tokens,
-                found_pronoun=found_pronoun,
-                pronoun_index=pronoun_index,
-                
-                is_impossible=is_impossible,
+                                            qas_id=qas_id,
+                                            question_text=question_text,
+                                            context_text=sample['context'],
+                                            
+                                            doc_tokens=doc_tokens,
+                                            found_pronoun=pronoun_text,
+                                            pronoun_index=pronoun_index,
+                                            
+                                            is_impossible=False,
 
-                answer_text='', # Not used in inference
-                start_position_character=-1, # Not used in inference
+                                            answer_text='', # Not used in inference
+                                            start_position_character=-1, # Not used in inference
 
-                item = item, # Store the original item 
-                orig_response=response
-            )
-
+                                            item = sample, # Store the original item 
+                                            orig_response=response
+                                        )      
+        
             if idx % 1000 == 0: #augwow has 190k examples
                 logging.info('*'*50)
                 logging.info(f'[Dialfact index: {idx}] Found pronoun: [{found_pronoun}] at index: [{pronoun_index}] in response: [{response}].')
@@ -146,8 +160,8 @@ def read_dialfact_examples(input_file):
                 logging.info(json.dumps(dict_example)+'\n')
                 logging.info('*'*50)
             
-            examples.append(squad_example)
-            dict_examples.append(squad_example.to_dict())
+        examples.append(squad_example)
+        dict_examples.append(squad_example.to_dict())
 
     logging.info(f'Loaded {len(examples)} examples.')
     logging.info(f'The number of samples with pronoun: {cnt_samples_with_prounoun}, percentage: {cnt_samples_with_prounoun/len(examples)*100:.2f}%')
@@ -265,14 +279,14 @@ def main():
 
     args = parser.parse_args()
 
-    # Load coreference data
-    try:
-        with open(args.coref_file, "r", encoding="utf-8") as reader:
-            coref_data = json.load(reader)
-    except Exception as e:
-        logging.error(f'Failed to load coreference data: {e}')
-        return
-
+    # # Load coreference data
+    # try:
+    #     with open(args.coref_file, "r", encoding="utf-8") as reader:
+    #         coref_data = json.load(reader)
+    # except Exception as e:
+    #     logging.error(f'Failed to load coreference data: {e}')
+    #     return
+    logging.info(f'START')
     read_dialfact_examples(args.input_file)
     # resolve_coref_with_augwow(args.input_file, coref_data, args.output_file)
 
