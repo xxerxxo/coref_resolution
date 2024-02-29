@@ -217,10 +217,9 @@ def evaluate(args, model, tokenizer, prefix=''):
     eval_sampler = SequentialSampler(dataset) if args.local_rank == -1 else DistributedSampler(dataset)
     eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
-    prefix = args.result_file_tag
 
     # Eval!
-    logger.info("***** Running evaluation {} *****".format(prefix))
+    logger.info("***** Running evaluation {} *****".format(args.result_tag))
     logger.info("  Num examples = %d", len(dataset))
     logger.info("  Batch size = %d", args.eval_batch_size)
     all_results = []
@@ -257,10 +256,10 @@ def evaluate(args, model, tokenizer, prefix=''):
             all_results.append(result)
 
     # Compute predictions
-    output_prediction_file = os.path.join(args.result_dir, "predictions_{}.json".format(prefix))
-    output_nbest_file = os.path.join(args.result_dir, "nbest_predictions_{}.json".format(prefix))
+    output_prediction_file = os.path.join(args.result_dir, "predictions_{}.json".format(args.result_tag))
+    output_nbest_file = os.path.join(args.result_dir, "nbest_predictions_{}.json".format(args.result_tag))
     if args.version_2_with_negative:
-        output_null_log_odds_file = os.path.join(args.output_dir, "null_odds_{}.json".format(prefix))
+        output_null_log_odds_file = os.path.join(args.output_dir, "null_odds_{}.json".format(args.result_tag))
     else:
         output_null_log_odds_file = None
 
@@ -309,20 +308,17 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
         elif args.task == 'augwow':
             examples, dict_examples = read_augwow_examples(input_file=input_file)
         
-            # store dict_examples as a jsonl in resolved_dir
-            # 'augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag)
-            with open(args.resolved_dir+'/augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag), 'w') as f:
-                for item in dict_examples:  
-                    f.write(json.dumps(item) + '\n')
-        
         elif args.task == 'dialfact':
             examples, dict_examples = read_dialfact_examples(input_file=input_file)
+
+        elif args.task == 'colloquial':
+            examples, dict_examples = read_colloquial_examples(input_file=input_file)
         
-            # store dict_examples as a jsonl in resolved_dir
-            # 'augwow_{}_with_pronouns.jsonl'.format(args.result_file_tag)
-            with open(args.resolved_dir+'/{}_with_pronouns.jsonl'.format(args.result_file_tag), 'w') as f:
-                for item in dict_examples:  
-                    f.write(json.dumps(item) + '\n')
+        # store dict_examples as a jsonl in resolved_dir
+        # 'augwow_{}_with_pronouns.jsonl'.format(args.result_tag)
+        with open(args.resolved_dir+'/{}/{}_with_pronouns.jsonl'.format(args.task, args.result_tag), 'w') as f:
+            for item in dict_examples:  
+                f.write(json.dumps(item) + '\n')
                     
         features = convert_examples_to_features(examples=examples,
                                                 tokenizer=tokenizer,
@@ -388,7 +384,7 @@ def main():
                         help="Where do you want to store the pre-trained models downloaded from s3")
     parser.add_argument("--resolved_dir", default="", type=str,
                         help="store the jsonl file with found pronouns.")
-    parser.add_argument("--result_file_tag", default="", type=str,
+    parser.add_argument("--result_tag", default="", type=str,
                         help="store the jsonl file with found pronouns.") #predictions_{}.json
 
     # # Additional arguments

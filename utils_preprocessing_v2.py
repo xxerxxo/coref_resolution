@@ -83,72 +83,17 @@ def identify_pronouns(sentence):
             return (token.text, i)
     return ('', -1)
 
-def read_colloquial_examples(input_file):
-    pass
-
-def read_augwow_examples(input_file):
+def identify_pronouns(sentence):
     """
-    [Input]
-    - jsonl file
-    [Output]
-    - examples: list of SquadExample instances to be used for coreference resolution in run_squad.py
-    - dict_examples: list of dictionaries, each representing a SquadExample instance for resolving coreference
+    Identify the first pronoun in the sentence.
+    Returns a tuple of the pronoun and its index if found, otherwise ('', -1).
     """
-    examples = []
-    dict_examples = []
-    logging.info(f'Reading AugWoW examples from {input_file} in read_augwow_examples().')
-    
-    with open(input_file, "r", encoding="utf-8") as reader:
-        for idx, line in enumerate(reader):
-            item = json.loads(line) # Load JSON line - each sample in AugWoW is a JSON line
-            
-            ctx = ' '.join(item['context'])
-            doc_tokens = ctx.split()  # doc_tokens is a list of tokens
-            item_id = item['id']
-            qas_id = item_id + '_' + str(idx) # Unique ID for each example for predicting the reference noun to each sample
-            
-            response = item['claim'].split('[RESPONSE]: ')[-1] # string after the '[RESPONSE]: ' tag in the claim
-            found_pronoun, pronoun_index = identify_pronouns(response)
-            if found_pronoun:
-                question_text = construct_question_text(found_pronoun, response)
-                is_impossible=False
-            else:
-                question_text = None
-                is_impossible=True
-            
-            squad_example = SquadExample(
-                qas_id=qas_id,
-                question_text=question_text,
-                context_text=item['context'],
-                
-                doc_tokens=doc_tokens,
-                found_pronoun=found_pronoun,
-                pronoun_index=pronoun_index,
-                
-                is_impossible=is_impossible,
+    doc = nlp(sentence)
+    for i, token in enumerate(doc):
+        if token.text.lower() in PRONOUNS and token.pos_ == 'PRON':
+            return (token.text, i)
+    return ('', -1)
 
-                answer_text='', # Not used in inference
-                start_position_character=-1, # Not used in inference
-
-                item = item, # Store the original item 
-                orig_response=response
-            )
-
-            if idx % 10000 == 0: #augwow has 190k examples
-                logging.info(f'[AugWoW index: {idx}] Found pronoun: {found_pronoun} at index: {pronoun_index} in response: {response}.')
-                dict_example = squad_example.to_dict()
-                logging.info(json.dumps(dict_example)+'\n')
-                logging.info('*'*50)
-            
-            examples.append(squad_example)
-            dict_examples.append(squad_example.to_dict())
-    logging.info(f'Loaded {len(examples)} examples.')
-    # with open(resolved_dir+'/augwow_found_pronouns.jsonl', 'w') as f:
-    #     for item in examples:
-    #         f.write(json.dumps(item) + '\n')
-
-    return examples, dict_examples
-    
 def read_dialfact_examples(input_file):
     examples = []
     dict_examples = []
@@ -209,6 +154,69 @@ def read_dialfact_examples(input_file):
 
     return examples, dict_examples
 
+def read_colloquial_examples(input_file):
+    pass
+
+def read_augwow_examples(input_file):
+    """
+    
+    """
+    examples = []
+    dict_examples = []
+    logging.info(f'Reading AugWoW examples from {input_file} in read_augwow_examples().')
+    
+    with open(input_file, "r", encoding="utf-8") as reader:
+        for idx, line in enumerate(reader):
+            item = json.loads(line) # Load JSON line - each sample in AugWoW is a JSON line
+            
+            ctx = ' '.join(item['context'])
+            doc_tokens = ctx.split()  # doc_tokens is a list of tokens
+            item_id = item['id']
+            qas_id = item_id + '_' + str(idx) # Unique ID for each example for predicting the reference noun to each sample
+            
+            response = item['claim'].split('[RESPONSE]: ')[-1] # string after the '[RESPONSE]: ' tag in the claim
+            found_pronoun, pronoun_index = identify_pronouns(response)
+            if found_pronoun:
+                question_text = construct_question_text(found_pronoun, response)
+                is_impossible=False
+            else:
+                question_text = None
+                is_impossible=True
+            
+            squad_example = SquadExample(
+                qas_id=qas_id,
+                question_text=question_text,
+                context_text=item['context'],
+                
+                doc_tokens=doc_tokens,
+                found_pronoun=found_pronoun,
+                pronoun_index=pronoun_index,
+                
+                is_impossible=is_impossible,
+
+                answer_text='', # Not used in inference
+                start_position_character=-1, # Not used in inference
+
+                item = item, # Store the original item 
+                orig_response=response
+            )
+
+            if idx % 10000 == 0: #augwow has 190k examples
+                logging.info(f'[AugWoW index: {idx}] Found pronoun: {found_pronoun} at index: {pronoun_index} in response: {response}.')
+                dict_example = squad_example.to_dict()
+                logging.info(json.dumps(dict_example)+'\n')
+                logging.info('*'*50)
+            
+            examples.append(squad_example)
+            dict_examples.append(squad_example.to_dict())
+    logging.info(f'Loaded {len(examples)} examples.')
+    # with open(resolved_dir+'/augwow_found_pronouns.jsonl', 'w') as f:
+    #     for item in examples:
+    #         f.write(json.dumps(item) + '\n')
+
+    return examples, dict_examples
+
+
 def resolve_coref_with_augwow(input_file, coref_data, output_file):
     """
     Resolve coreference problems in AugWoW examples using the provided coreference data.
@@ -252,8 +260,8 @@ def write_jsonl(data, file_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", default=None, type=str, required=True)
-    parser.add_argument("--coref_file", default=None, type=str, required=True)
-    parser.add_argument("--output_file", default=None, type=str, required=True)
+    parser.add_argument("--coref_file", default=None, type=str, required=False)
+    parser.add_argument("--output_file", default=None, type=str, required=False)
 
     args = parser.parse_args()
 
@@ -265,7 +273,8 @@ def main():
         logging.error(f'Failed to load coreference data: {e}')
         return
 
-    resolve_coref_with_augwow(args.input_file, coref_data, args.output_file)
+    read_dialfact_examples(args.input_file)
+    # resolve_coref_with_augwow(args.input_file, coref_data, args.output_file)
 
 if __name__ == "__main__":
     main()

@@ -74,7 +74,7 @@ def replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_i
         predicted_noun = predicted_noun.capitalize()
 
     new_response = ' '.join(response_tokens[:pronoun_index]) + ' ' + predicted_noun + ' ' + ' '.join(response_tokens[pronoun_index+1:])
-    logging.info(f'new_response: {new_response}')
+    # logging.info(f'new_response: {new_response}')
     return new_response
 
 
@@ -87,7 +87,7 @@ def write_jsonl(data, file_path):
         for item in data:
             f.write(json.dumps(item) + '\n')
 
-def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_file):
+def resolve_coref_with_examples(args, examples, coref_data, output_file, preprocess_file):
     """
     Resolve coreference problems in examples using the provided coreference data.
     """
@@ -124,12 +124,15 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
         original_claim: "League is a multiplayer online battle arena game , made by Riot games . It 's one of the top online games in the world at the moment !"
 
     '''
+    
     # augwow = augwow[:100]
     for idx, sample in enumerate(examples):
-        logging.info(f'[{idx}]'+'*'*50)
+        # logging.info(f'[{idx}]'+'*'*50)
         item_id = sample['qas_id']
+        # print(f'coref_data.get(item_id, None): {coref_data.get(item_id, None)}')
         predicted_noun = coref_data.get(item_id, None)[0] # Coreference Noun, if it's 'empty', then keep the original pronoun
         # print(f'predicted_noun: {predicted_noun}')
+    
         if sample['pronoun_index'] != -1 and predicted_noun != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
             pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
@@ -147,9 +150,9 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
                 
                 ### Change the response with coreference resolved #############
                 # augwow
-                # sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
+                sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
                 # dialfact
-                sample['item']['response'] = new_response
+                # sample['item']['response'] = new_response
 
                 # Add coreference info in the augwow
                 sample['item']['coref_noun'] = predicted_noun
@@ -163,10 +166,19 @@ def resolve_coref_with_examples(examples, coref_data, output_file, preprocess_fi
                 logging.error(f'Example: {sample}')
                 logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
                 
-            if idx%1000 == 0:
-                logging.info(f'*'*50+'Processed {idx} examples.')
-                logging.info(f'Example: {sample}')
-                logging.info('*'*50)
+            if args.task == 'augwow':
+                if idx%10000 == 0: #augwow
+                    logging.info(f'*'*50+'Processed {idx} examples.')
+                    logging.info(f'Example: {sample}')
+                    logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+                    logging.info('*'*50)
+
+            elif args.task == 'dialfact':
+                if idx%1000 == 0: 
+                    logging.info(f'*'*50+'Processed {idx} examples.')
+                    logging.info(f'Example: {sample}')
+                    logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+                    logging.info('*'*50)
 
         resolved_examples.append(sample)
         resolved_samples.append(sample['item'])
@@ -237,7 +249,7 @@ def main():
         examples = read_dialfact_examples(args.input_file)
 
     #save resolved examples to output_file
-    resolve_coref_with_examples(examples, coref_data, args.output_file, args.preprocess_file)
+    resolve_coref_with_examples(args, examples, coref_data, args.output_file, args.preprocess_file)
 
 if __name__ == "__main__":
     main()
