@@ -1,3 +1,9 @@
+"""
+read_dialfact_example(): dialfact의 모든 샘플을 순회하면서 각 response에서 첫 지시대명사만 추출하여, 두 가지 리스트 반환
+- examples: run_squad.py에서 features로 변환하기 위해 필요한 리스트
+- dict_examples: coreference resolution을 위해 필요한 리스트
+"""
+
 from pprint import pprint
 import spacy
 import json

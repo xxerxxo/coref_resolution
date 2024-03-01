@@ -212,6 +212,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
     features = []
     for (example_index, example) in enumerate(examples):
 
+        # "Considering the context, 'I have heard so much about Game of Thrones, I have never watched it before! It looks like the series is ending next year after eight seasons!!', how is 'It' utilized or defined?"
         query_tokens = tokenizer.tokenize(example.question_text)
 
         if len(query_tokens) > max_query_length:
@@ -265,6 +266,24 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
             "DocSpan", ["start", "length"])
         doc_spans = []
         start_offset = 0
+
+        # 수정될 부분: 문서 길이가 max_tokens_for_doc보다 긴 경우, 마지막 부분만 반영하도록 start_offset 조정 ######
+        if len(all_doc_tokens) > max_tokens_for_doc:
+            start_offset = len(all_doc_tokens) - max_tokens_for_doc
+
+        while start_offset < len(all_doc_tokens): # 모든 토큰을 처리
+            length = len(all_doc_tokens) - start_offset
+            if length > max_tokens_for_doc:
+                length = max_tokens_for_doc
+            doc_spans.append(_DocSpan(start=start_offset, length=length))
+            if start_offset + length == len(all_doc_tokens):
+                break
+            start_offset += min(length, doc_stride)
+            # "."을 기준으로 추가 조정이 필요한 경우 해당 로직을 유지하거나 조정합니다.
+            while start_offset < len(all_doc_tokens) and all_doc_tokens[start_offset - 1]!=".":
+                start_offset += 1
+
+        '''
         while start_offset < len(all_doc_tokens): #모든 토큰을 처리
             length = len(all_doc_tokens) - start_offset
             if length > max_tokens_for_doc:
@@ -279,6 +298,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
             start_offset += min(length, doc_stride) 
             while start_offset < len(all_doc_tokens) and all_doc_tokens[start_offset - 1]!=".":
                 start_offset += 1
+        '''
 
         for (doc_span_index, doc_span) in enumerate(doc_spans):
             tokens = []
