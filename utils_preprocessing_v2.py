@@ -89,12 +89,6 @@ def construct_question_text(pronoun, response):
         general_use = "utilized or defined within the narrative"
         return f"{context_phrase} how is '{pronoun}' {general_use}?"
 
-# Example usage:
-pronoun = "they"
-response = "After the meeting, they decided to go for lunch."
-question = construct_question_text(pronoun, response)
-print(question)
-
 
 ## Define pronouns list globally
 # PRONOUNS = ['he', 'she', 'it', 'they', 'them', 'this', 'these', 'those', 'who', 'whom', 'which', 'whose']
@@ -111,6 +105,63 @@ def identify_pronouns(sentence):
             result.append((token_idx, token.text)) #(pronoun_index, pronoun_text)
     return result
 
+def read_augwow_examples_w_pronouns(input_file):
+    """
+    Input: All samples
+    Output: Samples w/ pronouns
+    """
+    examples = []
+    dict_examples = []
+
+    # [1] READ AugWoW EXAMPLES
+    original_augwow = []
+    with open(input_file, "r", encoding="utf-8") as reader:
+        original_augwow = [json.loads(line) for idx, line in enumerate(reader)]
+
+    # original_augwow = original_augwow[:10]
+
+    # [2] Find pronouns in the response & [3] Construct question text & [4] Create SquadExample
+    for sample_idx, sample in enumerate(original_augwow):
+        # logging.info(f'[DIALFACT] INDEX OF SAMPLE: {sample_idx} ')
+        ctx = ' '.join(sample['context'])
+        doc_tokens = ctx.split()  # doc_tokens is a list of tokens
+        response = sample['claim'].split('[RESPONSE]: ')[-1]
+        pronoun_info = identify_pronouns(response) # [(pronoun_idx, pronoun_text), (pronoun_idx, pronoun_text), ...]
+        samples_for_each_response = [] # list of SquadExample for each response
+        # logging.info(f'[RESPONSE CLAIM]: {response}')
+        # logging.info(f'[PRONOUN INFO]: {pronoun_info}')
+        if pronoun_info:
+            for pronoun_index, pronoun_text in pronoun_info: # idx of pronoun in the response, text of pronoun
+                question_text = construct_question_text(pronoun_text, response) # construct question text with the pronoun
+                qas_id = sample['id'] + '_' + str(sample_idx) + '_' + str(pronoun_index) # Unique ID for each example for predicting the reference noun to each sample
+                # cnt_samples_with_prounoun += 1
+                squad_example = SquadExample(
+                                                qas_id=qas_id,
+                                                question_text=question_text,
+                                                context_text=sample['context'],
+                                                
+                                                doc_tokens=doc_tokens,
+                                                found_pronoun=pronoun_text,
+                                                pronoun_index=pronoun_index,
+                                                
+                                                is_impossible=False,
+
+                                                answer_text='', # Not used in inference
+                                                start_position_character=-1, # Not used in inference
+
+                                                item = sample, # Store the original item 
+                                                orig_response=response
+                                            )     
+                samples_for_each_response.append(squad_example)
+        
+        examples.extend(samples_for_each_response) # used in run_squad.py
+        dict_examples.extend(list(map(lambda s: s.to_dict(), samples_for_each_response))) # used for resolving later
+        # logging.info(f'SAMPLE - [{sample_idx}] ADDED---------> NOW: [{len(examples)}] samples in examples, [{len(dict_examples)}] samples in dict_examples')
+    # logging.info('*'*50)
+    logging.info(f'Loaded {len(examples)} examples.')
+    # logging.info(f'The number of samples with pronoun: {cnt_samples_with_prounoun}, percentage: {cnt_samples_with_prounoun/len(examples)*100:.2f}%')
+    return examples, dict_examples
+
 def read_dialfact_examples_w_pronouns(input_file):
     """
     Input: All samples
@@ -125,8 +176,6 @@ def read_dialfact_examples_w_pronouns(input_file):
     original_dialfact = []
     with open(input_file, "r", encoding="utf-8") as reader:
         original_dialfact = [json.loads(line) for idx, line in enumerate(reader)]
-
-    original_dialfact = original_dialfact[2000:2002]
 
     # [2] Find pronouns in the response & [3] Construct question text & [4] Create SquadExample
     for sample_idx, sample in enumerate(original_dialfact):

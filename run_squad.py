@@ -49,7 +49,7 @@ from utils_squad import (read_squad_examples, convert_examples_to_features,
                         RawResult_multi, write_predictions_multi)
 
 # from utils_preprocessing import (read_augwow_examples, read_dialfact_examples, resolve_coref_with_augwow)
-from utils_preprocessing_v2 import (read_dialfact_examples_w_pronouns)#, resolve_coref_with_augwow)
+from utils_preprocessing_v2 import (read_dialfact_examples_w_pronouns, read_augwow_examples_w_pronouns)#, resolve_coref_with_augwow)
 # The follwing import is the official SQuAD evaluation script (2.0).
 # You can remove it from the dependencies if you are using this script outside of the library
 # We've added it here for automated tests (see examples/test_examples.py file)
@@ -307,7 +307,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                                                 version_2_with_negative=args.version_2_with_negative)
             
         elif args.task == 'augwow':
-            examples, dict_examples = read_augwow_examples(input_file=input_file)
+            examples, dict_examples = read_augwow_examples_w_pronouns(input_file=input_file)
         
         elif args.task == 'dialfact':
             # examples, dict_examples = read_dialfact_examples(input_file=input_file)

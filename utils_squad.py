@@ -210,7 +210,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
     unique_id = 1000000000
 
     features = []
-    logging.info('[convert_examples_to_features()]********************************')
+    # logging.info('[convert_examples_to_features()]********************************')
     for (example_index, example) in enumerate(examples):
         # "Considering the context, 'I have heard so much about Game of Thrones, I have never watched it before! It looks like the series is ending next year after eight seasons!!', how is 'It' utilized or defined?"
         query_tokens = tokenizer.tokenize(example.question_text)
@@ -218,25 +218,21 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         if len(query_tokens) > max_query_length:
             query_tokens = query_tokens[0:max_query_length]
 
-        logging.info(f'[query_tokens]: {query_tokens}')
-        '''
-        tok_to_orig_index 배열은 각 서브워드 토큰이 원본 문맥의 어느 단어에서 유래했는지를 나타냅니다. 
-        예를 들어, 원본 문맥에 "unaffordable"라는 단어가 있고, 이것이 "un", "##aff", "##ord", "##able"로 토큰화되었다고 가정해보겠습니다. 
-        이 경우, tok_to_orig_index는 모든 서브워드 토큰에 대해 원본 단어 "unaffordable"의 인덱스를 저장합니다. 
-        따라서 이 배열은 ["un", "##aff", "##ord", "##able"] 각각에 대해 같은 인덱스를 반복해서 기록하게 됩니다.
-        '''
-        tok_to_orig_index = [] #각 sub-token이 원본 문맥의 어떤 단어(index)에 해당하는지 추적
-        orig_to_tok_index = [] 
+        # logging.info(f'[query_tokens]: {query_tokens}')
+    
+        tok_to_orig_index = [] # 각 서브워드 토큰이 원본 문맥에서 어느 토큰에 해당하는지를 추적. 예를 들어, 원본 문맥에 "unaffordable"라는 단어가 있고, 이것이 "un", "##aff", "##ord", "##able"로 토큰화된 경우, tok_to_orig_index 배열은 각 서브워드 토큰("un", "##aff", "##ord", "##able")이 원본 단어("unaffordable")의 인덱스를 반복해서 저장합니다. 이를 통해 서브워드 토큰이 원본 문맥의 어느 단어에서 유래했는지를 알 수 있습니다.
+        orig_to_tok_index = [] # 원본 문맥의 각 단어가 토큰화되어 생성된 "첫 번째 서브워드 토큰의 인덱스"를 저장하여, 원본 단어가 어떻게 서브워드 토큰들로 분해되는지를 추적
         all_doc_tokens = []
-        for (i, token) in enumerate(example.doc_tokens): #문맥(example.doc_tokens) 내의 각 단어(token)에 대해 반복
-            orig_to_tok_index.append(len(all_doc_tokens)) #단어를 더 작은 토큰들로 분해
-            sub_tokens = tokenizer.tokenize(token)
-            logging.info(f'[i]: {i}, token: {token}, sub_tokens: {sub_tokens}')
+        for (i, token) in enumerate(example.doc_tokens): #문맥(example.doc_tokens) 내의 각 단어(token)
+            orig_to_tok_index.append(len(all_doc_tokens)) #서브워드 토큰들의 공통 인덱스
+            sub_tokens = tokenizer.tokenize(token) #단어를 더 작은 토큰들로 분해
+            # logging.info(f'[i]: {i}, token: {token}, sub_tokens: {sub_tokens}')
             for sub_token in sub_tokens:
                 tok_to_orig_index.append(i)
                 all_doc_tokens.append(sub_token) #모든 서브워드 토큰
-                logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[tok_to_orig_index]: {tok_to_orig_index}')
-                logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[all_doc_tokens]: {all_doc_tokens}')
+                # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[tok_to_orig_index]: {tok_to_orig_index}')
+                # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[orig_to_tok_index]: {orig_to_tok_index}')
+                # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[all_doc_tokens]: {all_doc_tokens}')
 
         tok_start_positions = []
         tok_end_positions = []
@@ -262,7 +258,9 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
 
         # 문맥에 할당할 수 있는 최대 토큰 수, The -3 accounts for [CLS], [SEP] and [SEP]
         max_tokens_for_doc = max_seq_length - len(query_tokens) - 3
-
+        # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>max_seq_length: {max_seq_length}')
+        # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>max_tokens_for_doc: {max_tokens_for_doc}')
+        
         # We can have documents that are longer than the maximum sequence length.
         # To deal with this we do a sliding window approach, where we take chunks
         # of the up to our max length with a stride of `doc_stride`.
@@ -287,22 +285,8 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
             while start_offset < len(all_doc_tokens) and all_doc_tokens[start_offset - 1]!=".":
                 start_offset += 1
 
-        '''
-        while start_offset < len(all_doc_tokens): #모든 토큰을 처리
-            length = len(all_doc_tokens) - start_offset
-            if length > max_tokens_for_doc:
-                length = max_tokens_for_doc
-            doc_spans.append(_DocSpan(start=start_offset, length=length))
-            if start_offset + length == len(all_doc_tokens):
-                break
-            # doc_stride를 사용하여 span 사이의 겹침 정도를 조절합니다. 
-            # doc_stride 값이 크면 겹치는 부분이 적어져 정보의 중복이 줄어들고, doc_stride 값이 작으면 겹치는 부분이 많아져 정보의 중복이 증가합니다. 
-            # 적절한 doc_stride 값은 문맥 내에서 중요한 정보가 여러 span에 걸쳐 반복적으로 고려될 수 있도록 하여, 모델이 더 정확한 답변을 찾는 데 도움을 줍니다.
-            #문맥을 여러 개의 'span'으로 나눌 때, 각 'span' 사이에 겹치는 토큰의 수. 이는 정보의 중복을 허용하여 모델이 더 많은 문맥을 고려할 수 있게 한다.
-            start_offset += min(length, doc_stride) 
-            while start_offset < len(all_doc_tokens) and all_doc_tokens[start_offset - 1]!=".":
-                start_offset += 1
-        '''
+    
+        # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>doc_spans: {doc_spans}')
 
         for (doc_span_index, doc_span) in enumerate(doc_spans):
             tokens = []

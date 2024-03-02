@@ -290,15 +290,30 @@ def find_all_best_thresh_v2(main_eval, preds, exact_raw, f1_raw, na_probs, qid_t
 
 def main(OPTS):
 
-  with open(OPTS.data_file) as f:
-    dataset_json = json.load(f)
-    dataset = dataset_json['data']
-  if OPTS.pred_file.endswith('.jsonl'): 
+  # with open(OPTS.data_file) as f:
+  #   dataset_json = json.load(f)
+  #   dataset = dataset_json['data']
+  dataset = []
+  with open(OPTS.data_file, 'r') as f:
+    for line in f:
+      dataset.append(json.loads(line))
+      
+  # if OPTS.pred_file.endswith('.jsonl'): 
+  #   with open(OPTS.pred_file) as f:
+  #     preds = json.loads(f)
+  # else:  
+  #   with open(OPTS.pred_file) as f:
+  #     preds = json.load(f)
+  if OPTS.pred_file.endswith('.jsonl'):
+    preds = {}
     with open(OPTS.pred_file) as f:
-      preds = json.loads(f)
+        for line in f:
+            line_data = json.loads(line)
+            preds.update(line_data)
   else:  
-    with open(OPTS.pred_file) as f:
-      preds = json.load(f)
+      with open(OPTS.pred_file) as f:
+          preds = json.load(f)
+
   if OPTS.na_prob_file:
     with open(OPTS.na_prob_file) as f:
       na_probs = json.load(f)
