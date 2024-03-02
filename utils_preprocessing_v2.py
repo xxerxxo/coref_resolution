@@ -56,18 +56,45 @@ class SquadExample:
         }
 
 
+# def construct_question_text(pronoun, response):
+#     """Construct question text based on the identified pronoun."""
+#     if pronoun in ['he', 'she']:
+#         return f"In the context, '{response}', who does '{pronoun}' specifically refer to?"
+#     elif pronoun == 'it':
+#         return f"In the sentence, '{response}', what does '{pronoun}' refer to?"
+#     elif pronoun in ['they', 'them']:
+#         return f"In the narrative, '{response}', who or what are referred to as '{pronoun}'?"
+#     elif pronoun in ['this', 'that', 'these', 'those']:
+#         return f"In the discussion, '{response}', what specific item or situation does '{pronoun}' point to?"
+#     else:
+#         return f"Considering the context, '{response}', how is '{pronoun}' utilized or defined?"
+    
 def construct_question_text(pronoun, response):
-    """Construct question text based on the identified pronoun."""
-    if pronoun in ['he', 'she']:
-        return f"In the context, '{response}', who does '{pronoun}' specifically refer to?"
-    elif pronoun == 'it':
-        return f"In the sentence, '{response}', what does '{pronoun}' refer to?"
-    elif pronoun in ['they', 'them']:
-        return f"In the narrative, '{response}', who or what are referred to as '{pronoun}'?"
-    elif pronoun in ['this', 'that', 'these', 'those']:
-        return f"In the discussion, '{response}', what specific item or situation does '{pronoun}' point to?"
+    """Construct question text based on the identified pronoun, more aligned with QUOREF style."""
+    context_phrase = f"Considering the context, '{response}',"
+    
+    if pronoun.lower() in ['he', 'she']:
+        action_or_description = "is mentioned as" if "mentioned" in response else "is described as"
+        return f"{context_phrase} which person {action_or_description} '{pronoun}'?"
+    elif pronoun.lower() == 'it':
+        detail_hint = "referring to an object, concept, or situation"
+        return f"{context_phrase} what exactly does '{pronoun}' {detail_hint}?"
+    elif pronoun.lower() in ['they', 'them']:
+        group_or_entity = "individuals or entities"
+        return f"{context_phrase} which {group_or_entity} are collectively referred to as '{pronoun}'?"
+    elif pronoun.lower() in ['this', 'that', 'these', 'those']:
+        specificity_hint = "specific item, situation, or idea"
+        return f"{context_phrase} what {specificity_hint} does '{pronoun}' point to?"
     else:
-        return f"Considering the context, '{response}', how is '{pronoun}' utilized or defined?"
+        general_use = "utilized or defined within the narrative"
+        return f"{context_phrase} how is '{pronoun}' {general_use}?"
+
+# Example usage:
+pronoun = "they"
+response = "After the meeting, they decided to go for lunch."
+question = construct_question_text(pronoun, response)
+print(question)
+
 
 ## Define pronouns list globally
 # PRONOUNS = ['he', 'she', 'it', 'they', 'them', 'this', 'these', 'those', 'who', 'whom', 'which', 'whose']
@@ -99,7 +126,7 @@ def read_dialfact_examples_w_pronouns(input_file):
     with open(input_file, "r", encoding="utf-8") as reader:
         original_dialfact = [json.loads(line) for idx, line in enumerate(reader)]
 
-    # original_dialfact = original_dialfact[:100]
+    original_dialfact = original_dialfact[2000:2002]
 
     # [2] Find pronouns in the response & [3] Construct question text & [4] Create SquadExample
     for sample_idx, sample in enumerate(original_dialfact):
@@ -134,7 +161,6 @@ def read_dialfact_examples_w_pronouns(input_file):
                                                 orig_response=response
                                             )     
                 samples_for_each_response.append(squad_example)
-                print(f'[PRONOUN] {qas_id}')    
         
         """
         IGNORE SAMPLES WITHOUT PRONOUNS
@@ -169,7 +195,7 @@ def read_dialfact_examples_w_pronouns(input_file):
         # print all samples in samples_for_each_response as a dict
         examples.extend(samples_for_each_response) # used in run_squad.py
         dict_examples.extend(list(map(lambda s: s.to_dict(), samples_for_each_response))) # used for resolving later
-        logging.info(f'SAMPLE - [{sample_idx}] ADDED---------> NOW: [{len(examples)}] samples in examples, [{len(dict_examples)}] samples in dict_examples')
+        # logging.info(f'SAMPLE - [{sample_idx}] ADDED---------> NOW: [{len(examples)}] samples in examples, [{len(dict_examples)}] samples in dict_examples')
     # pprint(dict_examples)
     # logging.info('*'*50)
     # logging.info(f'Loaded {len(examples)} examples.')

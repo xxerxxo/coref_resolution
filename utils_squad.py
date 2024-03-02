@@ -210,14 +210,15 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
     unique_id = 1000000000
 
     features = []
+    logging.info('[convert_examples_to_features()]********************************')
     for (example_index, example) in enumerate(examples):
-
         # "Considering the context, 'I have heard so much about Game of Thrones, I have never watched it before! It looks like the series is ending next year after eight seasons!!', how is 'It' utilized or defined?"
         query_tokens = tokenizer.tokenize(example.question_text)
 
         if len(query_tokens) > max_query_length:
             query_tokens = query_tokens[0:max_query_length]
 
+        logging.info(f'[query_tokens]: {query_tokens}')
         '''
         tok_to_orig_index 배열은 각 서브워드 토큰이 원본 문맥의 어느 단어에서 유래했는지를 나타냅니다. 
         예를 들어, 원본 문맥에 "unaffordable"라는 단어가 있고, 이것이 "un", "##aff", "##ord", "##able"로 토큰화되었다고 가정해보겠습니다. 
@@ -230,9 +231,12 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         for (i, token) in enumerate(example.doc_tokens): #문맥(example.doc_tokens) 내의 각 단어(token)에 대해 반복
             orig_to_tok_index.append(len(all_doc_tokens)) #단어를 더 작은 토큰들로 분해
             sub_tokens = tokenizer.tokenize(token)
+            logging.info(f'[i]: {i}, token: {token}, sub_tokens: {sub_tokens}')
             for sub_token in sub_tokens:
                 tok_to_orig_index.append(i)
                 all_doc_tokens.append(sub_token) #모든 서브워드 토큰
+                logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[tok_to_orig_index]: {tok_to_orig_index}')
+                logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>[all_doc_tokens]: {all_doc_tokens}')
 
         tok_start_positions = []
         tok_end_positions = []
