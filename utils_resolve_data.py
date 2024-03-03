@@ -87,9 +87,16 @@ def write_jsonl(data, file_path):
         for item in data:
             f.write(json.dumps(item) + '\n')
 
-def resolve_coref_with_examples(args, examples, coref_data, output_file, preprocess_file):
+def resolve_coref_with_examples(args, examples, nbest_coref_data, coref_data, output_file, preprocess_file):
     """
-    Resolve coreference problems in examples using the provided coreference data.
+    Args:
+    - examples: List of examples with pronouns to be resolved.
+    - coref_data: Coreference data for the examples.
+    - output_file: File to write the resolved examples to.
+    - preprocess_file: File to write the resolved examples and coreference data to.
+
+    Returns:
+    - resolved_examples: List of examples with resolved pronouns.
     """
     logging.info(f'Resolving coreference in {len(examples)} examples using coreference data for {len(coref_data)} examples.')
     logging.info(f'Type of examples: {type(examples)}, and type of coref_data: {type(coref_data)}')
@@ -100,97 +107,94 @@ def resolve_coref_with_examples(args, examples, coref_data, output_file, preproc
     resolved_examples = [] # Resolved examples : all information from examples and new_response
     resolved_samples = [] # Resolved samples : only new_response and the original examples
     resolved_count = 0
-    '''one example in /data/scratch/acw722/corefbert/result/resolved_data/augwow_with_pronouns.jsonl
     
-    qas_id: "1845___2_antadj_195168"
-    question_text: "Considering the context, 'League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !', how is 'It' utilized or defined?"
-    doc_tokens: ["I", "love", "the", "game", "League", "of", "Legends!", "Have", "you", "ever", "heard", "of", "it", "or", "played", "it", "before?", "I", "think", "I've", "heard", "the", "name", "but", "I", "know", "nothing", "about", "it."]
-    is_impossible: false
-    orig_answer_text: ""
-    start_position: -1
-    end_position: -1
-    found_pronoun: "It"
-    orig_response: "League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !"
-    new_response: ""
-    context_text: ["I love the game League of Legends! Have you ever heard of it or played it before?", "I think I've heard the name but I know nothing about it."]
-    pronoun_index: 16
-    predicted_pronoun: null
-    item: 
-        id: "1845___2_antadj"
-        evidence: [["League of Legends", 0, "League of Legends (abbreviated LoL) is a multiplayer online battle arena video game developed and published by Riot Games for Microsoft Windows and macOS.", 1]]
-        claim: "[CONTEXT]: I love the game League of Legends! Have you ever heard of it or played it before? [EOT] I think I've heard the name but I know nothing about it. [RESPONSE]: League is a multiplayer off-line battle arena game , made by Riot games . It 's one of the top off-line games in the world at the moment !"
-        context: ["I love the game League of Legends! Have you ever heard of it or played it before?", "I think I've heard the name but I know nothing about it."]
-        label: "REFUTES"
-        original_claim: "League is a multiplayer online battle arena game , made by Riot games . It 's one of the top online games in the world at the moment !"
-
-    '''
-    
+    temp_dict = {} #{'134___4--0_7': [('1', 'Kona in Hawaii'), ('15', 'Kona in Hawaii')]} 
+    """
+    KEY: sample_id
+    VALUE: list of (pronoun_idx, predicted_noun)
+    """
     # augwow = augwow[:100]
     for idx, sample in enumerate(examples):
-        # logging.info(f'[{idx}]'+'*'*50)
         item_id = sample['qas_id']
-        # print(f'coref_data.get(item_id, None): {coref_data.get(item_id, None)}')
+        
+        sample_key = item_id[:item_id.rfind('_')]
+        pronoun_idx = item_id[item_id.rfind('_')+1:]
         predicted_noun = coref_data.get(item_id, None)[0] # Coreference Noun, if it's 'empty', then keep the original pronoun
-        # print(f'predicted_noun: {predicted_noun}')
-    
+        if sample_key in temp_dict:
+            temp_dict[sample_key].append((pronoun_idx, predicted_noun))
+        else:
+            temp_dict[sample_key] = [(pronoun_idx, predicted_noun)]   
+
+        cnt_pronoun_idx_none = 0
+        cnt_predicted_noun_none = 0
+        if sample['pronoun_index'] == -1: 
+            print(f'>>>>>>>>>>>>>>>>>>>>>>>>> pronoun_idx = -1: {item_id}')
+            cnt_pronoun_idx_none += 1
+        elif predicted_noun == 'empty': 
+            print('************************** predicted_noun = empty : {item_id}')
+            cnt_predicted_noun_none += 1
+
+        print(f'cnt_pronoun_idx_none: {cnt_pronoun_idx_none}, cnt_predicted_noun_none: {cnt_predicted_noun_none}')
+        print('*'*100)
+        print()
+        print()
+
         if sample['pronoun_index'] != -1 and predicted_noun != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
             resolved_count += 1
-            pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
-            found_pronoun = sample['found_pronoun'] # Pronoun in the original response
-            response = sample['orig_response']
-            # print(f'found_pronoun: {found_pronoun}')
-            # print(f'pronoun_index: {pronoun_index}')
-            # print(f'original response: {response}')
-            # print(f'predicted_noun: {predicted_noun}')
-            new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
-            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!new_response: {new_response}')
-            if new_response:
-                sample['new_response'] = new_response
-                sample['predicted_pronoun'] = predicted_noun
+        #     pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
+        #     found_pronoun = sample['found_pronoun'] # Pronoun in the original response
+        #     response = sample['orig_response']
+        #     new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
+        #     if new_response:
+        #         sample['new_response'] = new_response
+        #         sample['predicted_pronoun'] = predicted_noun
                 
-                ### Change the response with coreference resolved #############
-                # augwow
-                sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
-                # dialfact
-                # sample['item']['response'] = new_response
+        #         ### Change the response with coreference resolved #############
+        #         if args.task == 'augwow':
+        #             # augwow
+        #             sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
+        #         elif args.task == 'dialfact':
+        #             sample['item']['response'] = new_response
 
-                # Add coreference info in the augwow
-                sample['item']['coref_noun'] = predicted_noun
-                sample['item']['pronoun_idx'] = sample['pronoun_index']
-                sample['item']['found_pronoun'] = sample['found_pronoun']
-                sample['item']['qas_id'] = item_id
-                sample['item']['question_text'] = sample['question_text']
+        #         # Add coreference info in the augwow
+        #         sample['item']['coref_noun'] = predicted_noun
+        #         sample['item']['pronoun_idx'] = sample['pronoun_index']
+        #         sample['item']['found_pronoun'] = sample['found_pronoun']
+        #         sample['item']['qas_id'] = item_id
+        #         sample['item']['question_text'] = sample['question_text']
             
-            elif not new_response:
-                logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
-                logging.error(f'Example: {sample}')
-                logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
+        #     elif not new_response:
+        #         logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
+        #         logging.error(f'Example: {sample}')
+        #         logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
                 
-            if args.task == 'augwow':
-                if idx%10000 == 0: #augwow
-                    logging.info(f'*'*50+'Processed {idx} examples.')
-                    logging.info(f'Example: {sample}')
-                    logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
-                    logging.info('*'*50)
+        #     if args.task == 'augwow':
+        #         if idx%10000 == 0: #augwow
+        #             logging.info(f"'*'*50+'Processed {idx} examples.'")
+        #             logging.info(f'Example: {sample}')
+        #             logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+        #             logging.info('*'*50)
+        #             # logging.info()
 
-            elif args.task == 'dialfact':
-                if idx%1000 == 0: 
-                    logging.info(f'*'*50+'Processed {idx} examples.')
-                    logging.info(f'Example: {sample}')
-                    logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
-                    logging.info('*'*50)
+        #     elif args.task == 'dialfact':
+        #         if idx%1000 == 0: 
+        #             logging.info(f"'*'*50+'Processed {idx} examples.'")
+        #             logging.info(f'Example: {sample}')
+        #             logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+        #             logging.info('*'*50)
+        #             # logging.info()
 
-        resolved_examples.append(sample)
-        resolved_samples.append(sample['item'])
+        # resolved_examples.append(sample)
+        # resolved_samples.append(sample['item'])
 
-    logging.info(f'Resolved {resolved_count} examples.')
+    logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>  Resolved {resolved_count} examples.')
     
-    write_jsonl(resolved_examples, preprocess_file)
-    logging.info(f'Wrote resolved examples to {preprocess_file}.')
+    # write_jsonl(resolved_examples, preprocess_file)
+    logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>  Wrote resolved examples to {preprocess_file}.')
     
     # OUTPUT FILE
-    write_jsonl(resolved_samples, output_file)
-    logging.info(f'Wrote resolved samples to be trained rightly to {output_file}.')
+    # write_jsonl(resolved_samples, output_file)
+    logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>  Wrote resolved samples to be trained rightly to {output_file}.')
     
 
 def read_coref_data(coref_file):
@@ -235,6 +239,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", default=None, type=str, required=True)
     parser.add_argument("--coref_file", default=None, type=str, required=True)
+    parser.add_argument("--nbest_coref_file", default=None, type=str, required=True)
     parser.add_argument("--output_file", default=None, type=str, required=True) # 공동참조 해결 후, 바로 훈련에 들어가도되는 데이터
     parser.add_argument("--preprocess_file", default=None, type=str, required=True) # 공동참조 해결 관련 모든 정보
     parser.add_argument("--task", default=128, type=str)
@@ -243,13 +248,14 @@ def main():
     args = parser.parse_args()
 
     coref_data = read_coref_data(args.coref_file)
+    nbest_coref_data = read_coref_data(args.nbest_coref_file)
     if args.task == 'augwow':
         examples = read_augwow_examples(args.input_file)
     elif args.task == 'dialfact':
         examples = read_dialfact_examples(args.input_file)
 
     #save resolved examples to output_file
-    resolve_coref_with_examples(args, examples, coref_data, args.output_file, args.preprocess_file)
+    resolve_coref_with_examples(args, examples, nbest_coref_data, coref_data, args.output_file, args.preprocess_file)
 
 if __name__ == "__main__":
     main()

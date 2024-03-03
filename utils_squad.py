@@ -700,8 +700,10 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                 continue
 
             nbest.append({"orig_doc_start":orig_doc_start, "orig_doc_end": orig_doc_end, "text": final_text})
-            if len(nbest)==2:
-                break     
+            # if len(nbest)==2:
+            #     break     
+            if len(nbest)==6:
+                break
         id2fakeanswer[feature.example_index] = nbest
 
 
