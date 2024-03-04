@@ -537,6 +537,20 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
     logger.info("Writing predictions to: %s" % (output_prediction_file))
     # logger.info("Writing nbest to: %s" % (output_nbest_file))
 
+    '''
+    InputFeatures 객체 구성
+
+        unique_id: 각 특성의 고유 식별자입니다.
+        example_index: 원본 SquadExample의 인덱스입니다. 이 인덱스를 사용하여 나중에 원본 데이터와 매핑할 수 있습니다.
+        tokens: 문서와 질문의 토큰화된 토큰 목록입니다.
+        input_ids: 모델의 입력으로 사용될 토큰의 ID 목록입니다.
+        input_mask: 실제 토큰과 패딩 토큰을 구분하는 마스크입니다.
+        segment_ids: 각 토큰이 속한 세그먼트(질문 또는 문서)를 나타내는 ID 목록입니다.
+        start_position 및 end_position: 답변에 해당하는 토큰의 시작 위치와 끝 위치입니다(훈련 데이터의 경우).
+        is_impossible: 해당 예제에 답변이 불가능한지 여부를 나타냅니다(SQuAD 2.0의 경우).
+    '''
+
+    # example_index_to_features: 키(key)는 SquadExample의 인덱스(example_index)를 나타내며, 값(value)은 해당 인덱스를 가진 SquadExample으로부터 생성된 모든 InputFeatures 객체들의 리스트
     example_index_to_features = collections.defaultdict(list)
     for feature in all_features:
         example_index_to_features[feature.example_index].append(feature)

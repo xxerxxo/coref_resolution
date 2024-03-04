@@ -441,7 +441,10 @@ def main():
                         help="Linear warmup over warmup_steps.")
     parser.add_argument("--n_best_size", default=20, type=int,
                         help="The total number of n-best predictions to generate in the nbest_predictions.json output file.")
-    parser.add_argument("--max_answer_length", default=30, type=int,
+    # parser.add_argument("--max_answer_length", default=30, type=int,
+    #                     help="The maximum length of an answer that can be generated. This is needed because the start "
+    #                          "and end predictions are not conditioned on one another.")
+    parser.add_argument("--max_answer_length", default=10, type=int,
                         help="The maximum length of an answer that can be generated. This is needed because the start "
                              "and end predictions are not conditioned on one another.")
     parser.add_argument("--verbose_logging", action='store_true',

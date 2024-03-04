@@ -116,76 +116,76 @@ def resolve_coref_with_examples(args, examples, nbest_coref_data, coref_data, ou
     # augwow = augwow[:100]
     for idx, sample in enumerate(examples):
         item_id = sample['qas_id']
-        
-        sample_key = item_id[:item_id.rfind('_')]
-        pronoun_idx = item_id[item_id.rfind('_')+1:]
+        # sample_key = item_id[:item_id.rfind('_')]
+        # pronoun_idx = item_id[item_id.rfind('_')+1:]
         predicted_noun = coref_data.get(item_id, None)[0] # Coreference Noun, if it's 'empty', then keep the original pronoun
-        if sample_key in temp_dict:
-            temp_dict[sample_key].append((pronoun_idx, predicted_noun))
-        else:
-            temp_dict[sample_key] = [(pronoun_idx, predicted_noun)]   
+        # if sample_key in temp_dict:
+        #     temp_dict[sample_key].append((pronoun_idx, predicted_noun))
+        # else:
+        #     temp_dict[sample_key] = [(pronoun_idx, predicted_noun)]   
 
-        cnt_pronoun_idx_none = 0
-        cnt_predicted_noun_none = 0
-        if sample['pronoun_index'] == -1: 
-            print(f'>>>>>>>>>>>>>>>>>>>>>>>>> pronoun_idx = -1: {item_id}')
-            cnt_pronoun_idx_none += 1
-        elif predicted_noun == 'empty': 
-            print('************************** predicted_noun = empty : {item_id}')
-            cnt_predicted_noun_none += 1
+        # cnt_pronoun_idx_none = 0
+        # cnt_predicted_noun_none = 0
+        # if sample['pronoun_index'] == -1: 
+        #     print(f'>>>>>>>>>>>>>>>>>>>>>>>>> pronoun_idx = -1: {item_id}')
+        #     cnt_pronoun_idx_none += 1
+        # elif predicted_noun == 'empty': 
+        #     print('************************** predicted_noun = empty : {item_id}')
+        #     cnt_predicted_noun_none += 1
 
-        print(f'cnt_pronoun_idx_none: {cnt_pronoun_idx_none}, cnt_predicted_noun_none: {cnt_predicted_noun_none}')
-        print('*'*100)
-        print()
-        print()
+        # print(f'cnt_pronoun_idx_none: {cnt_pronoun_idx_none}, cnt_predicted_noun_none: {cnt_predicted_noun_none}')
+        # print('*'*100)
+        # print()
+        # print()
 
-        if sample['pronoun_index'] != -1 and predicted_noun != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
-            resolved_count += 1
-        #     pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
-        #     found_pronoun = sample['found_pronoun'] # Pronoun in the original response
-        #     response = sample['orig_response']
-        #     new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
-        #     if new_response:
-        #         sample['new_response'] = new_response
-        #         sample['predicted_pronoun'] = predicted_noun
-                
-        #         ### Change the response with coreference resolved #############
-        #         if args.task == 'augwow':
-        #             # augwow
-        #             sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
-        #         elif args.task == 'dialfact':
-        #             sample['item']['response'] = new_response
+        # if sample['pronoun_index'] != -1 and predicted_noun != 'empty': # If the item_id is in coref_data, replace the pronoun with the predicted noun
+        #     resolved_count += 1
 
-        #         # Add coreference info in the augwow
-        #         sample['item']['coref_noun'] = predicted_noun
-        #         sample['item']['pronoun_idx'] = sample['pronoun_index']
-        #         sample['item']['found_pronoun'] = sample['found_pronoun']
-        #         sample['item']['qas_id'] = item_id
-        #         sample['item']['question_text'] = sample['question_text']
+        pronoun_index = sample['pronoun_index'] # Pronoun index in the original response
+        found_pronoun = sample['found_pronoun'] # Pronoun in the original response
+        response = sample['orig_response']
+        new_response = replace_pronoun_with_noun(response, predicted_noun, found_pronoun, pronoun_index, item_id)
+        if new_response:
+            sample['new_response'] = new_response
+            sample['predicted_pronoun'] = predicted_noun
             
-        #     elif not new_response:
-        #         logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
-        #         logging.error(f'Example: {sample}')
-        #         logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
-                
-        #     if args.task == 'augwow':
-        #         if idx%10000 == 0: #augwow
-        #             logging.info(f"'*'*50+'Processed {idx} examples.'")
-        #             logging.info(f'Example: {sample}')
-        #             logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
-        #             logging.info('*'*50)
-        #             # logging.info()
+            ### Change the response with coreference resolved #############
+            if args.task == 'augwow':
+                # augwow
+                sample['item']['claim'] = sample['item']['claim'].split('[RESPONSE]:')[0] + f'[RESPONSE]: {new_response}'
+            elif args.task == 'dialfact':
+                sample['item']['response'] = new_response
 
-        #     elif args.task == 'dialfact':
-        #         if idx%1000 == 0: 
-        #             logging.info(f"'*'*50+'Processed {idx} examples.'")
-        #             logging.info(f'Example: {sample}')
-        #             logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
-        #             logging.info('*'*50)
-        #             # logging.info()
+            # Add coreference info in the augwow
+            sample['item']['coref_noun'] = predicted_noun
+            sample['item']['pronoun_idx'] = sample['pronoun_index']
+            sample['item']['found_pronoun'] = sample['found_pronoun']
+            sample['item']['qas_id'] = item_id
+            sample['item']['question_text'] = sample['question_text']
+        
+        elif not new_response:
+            logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
+            logging.error(f'Example: {sample}')
+            logging.error(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Failed to replace pronoun with noun in example {idx}.')
+            
+        if args.task == 'augwow':
+            if idx%10000 == 0: #augwow
+                logging.info(f"'*'*50+'Processed {idx} examples.'")
+                logging.info(f'Example: {sample}')
+                logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+                logging.info('*'*50)
+                # logging.info()
 
-        # resolved_examples.append(sample)
-        # resolved_samples.append(sample['item'])
+        elif args.task == 'dialfact':
+            if idx%1000 == 0: 
+                logging.info(f"'*'*50+'Processed {idx} examples.'")
+                logging.info(f'Example: {sample}')
+                logging.info(f'Predicted noun: [{predicted_noun}], found_pronoun: [{found_pronoun}], pronoun_index: [{pronoun_index}], in the original response: [{response}]')
+                logging.info('*'*50)
+                # logging.info()
+
+        resolved_examples.append(sample)
+        resolved_samples.append(sample['item'])
 
     logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>  Resolved {resolved_count} examples.')
     
