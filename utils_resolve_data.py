@@ -7,7 +7,6 @@ import argparse
 
 # Spacy NLP initialization
 nlp = spacy.load("en_core_web_sm")
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
