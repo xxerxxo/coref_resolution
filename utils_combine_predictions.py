@@ -1,6 +1,7 @@
 import logging
 logging.basicConfig(level=logging.ERROR)
 
+from copy import deepcopy
 from pprint import pprint
 import spacy
 import json, jsonlines
@@ -67,8 +68,10 @@ def find_sample(examples, qas_id):
         
 def words_to_response(sample):
     words = sample['words']
-    new_sample = sample.deepcopy()
+    # new_sample = sample.deepcopy()
+    new_sample = deepcopy(sample)
     new_sample['ori_response'] = new_sample['response']
+    words = [i[0] for i in list(words.values())]
     new_sample['response'] = ' '.join(words)
     return new_sample
 
@@ -91,7 +94,7 @@ def combine_predictions(args, examples, thebest_data, output_file, preprocess_fi
                 dict_words = {i: item for i, item in enumerate([token.text for token in nlp(sample['response'])])}
                 dict_words[int(pronoun_idx)] = pred_noun[0]
                 sample['words'] = dict_words
-                results[sample_id] = sample
+                results[sample_id] = words_to_response(sample)
             
             cnt += 1
             total_items = len(thebest_data)
@@ -117,7 +120,7 @@ def combine_predictions(args, examples, thebest_data, output_file, preprocess_fi
                 dict_words = {i: item for i, item in enumerate([token.text for token in nlp(ori_response)])}
                 dict_words[int(pronoun_idx)] = pred_noun[0]
                 sample['words'] = dict_words
-                results[sample_id] = sample
+                results[sample_id] = words_to_response(sample)
             
             cnt += 1
             total_items = len(thebest_data)

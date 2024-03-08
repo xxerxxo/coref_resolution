@@ -75,10 +75,13 @@ def select_predictions(frame_file, pred_file, predictions_file, output_file):
     results = {}
     
     qasid_empty = []
+
     for i, frame in enumerate(frames):
         if str(i) in nbest_predictions:
             predicted_noun = ""
+            
             candidates = [cand["text"] for cand in nbest_predictions[str(i)]]
+            
             sorted_candidates = generate_filled_sentences(
                                                             frame['found_pronoun'],
                                                             frame["context_text"],
@@ -86,7 +89,6 @@ def select_predictions(frame_file, pred_file, predictions_file, output_file):
                                                             frame["pronoun_index"],
                                                             candidates
                                                         )
-            
             if not sorted_candidates:
                 qasid_empty.append(frame['qas_id'])
                 predicted_noun = predictions[frame['qas_id']]
@@ -102,8 +104,9 @@ def select_predictions(frame_file, pred_file, predictions_file, output_file):
         logging.info(f'[{i} sample] {frame["qas_id"]} : {predicted_noun}') 
         if i % (len(frames) // 10) == 0:
             logging.info(f'{i} / {len(frames)} done.')
+            logging.info(f'*****************************************************************************')
         
-    pprint(results)
+    # pprint(results)
     write_json(results, output_file)
     logging.info(f'The Number of empty predictions: {len(qasid_empty)} out of {len(frames)}.')
 
