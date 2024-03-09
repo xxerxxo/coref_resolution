@@ -313,8 +313,8 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             # examples, dict_examples = read_dialfact_examples(input_file=input_file)
             examples, dict_examples = read_dialfact_examples_w_pronouns(input_file=input_file)
 
-        # elif args.task == 'colloquial':
-        #     examples, dict_examples = read_colloquial_examples(input_file=input_file)
+        elif args.task == 'colloquial':
+            examples, dict_examples = read_colloquial_examples(input_file=input_file)
         
         # store dict_examples as a jsonl in resolved_dir
         # 'augwow_{}_with_pronouns.jsonl'.format(args.result_tag)

@@ -71,7 +71,7 @@ def words_to_response(sample):
     # new_sample = sample.deepcopy()
     new_sample = deepcopy(sample)
     new_sample['ori_response'] = new_sample['response']
-    words = [i[0] for i in list(words.values())]
+    words = [str(token) for token in list(words.values())]
     new_sample['response'] = ' '.join(words)
     return new_sample
 
