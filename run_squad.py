@@ -385,7 +385,7 @@ def main():
                         help="dialfact or augwow")
     parser.add_argument("--type", default="", type=str,
                         help="valid/test, train/dev")
-    parser.add_argument("--cnt_ctx", default="", type=str,
+    parser.add_argument("--cnt_ctx", default="", type=int,
                         help="the number of sentences in context")
     # # Additional arguments
     # parser.add_argument("--coref_file", default=None, type=str, required=True,
