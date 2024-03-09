@@ -308,10 +308,10 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                                                 version_2_with_negative=args.version_2_with_negative)
             
         elif args.task == 'augwow':
-            examples, dict_examples = read_examples(input_file, args.task, type)
+            examples, dict_examples = read_examples(input_file, args.task, args.type, args.cnt_ctx)
         
         elif args.task == 'dialfact':
-            examples, dict_examples = read_examples(input_file, args.task, type)
+            examples, dict_examples = read_examples(input_file, args.task, args.type, args.cnt_ctx)
 
         with open(args.resolved_dir+'/{}/{}_pronouns.jsonl'.format(args.task, args.tag), 'w') as f:
             for item in dict_examples:  
@@ -385,6 +385,8 @@ def main():
                         help="dialfact or augwow")
     parser.add_argument("--type", default="", type=str,
                         help="valid/test, train/dev")
+    parser.add_argument("--cnt_ctx", default="", type=str,
+                        help="the number of sentences in context")
     # # Additional arguments
     # parser.add_argument("--coref_file", default=None, type=str, required=True,
     #                     help="Path to the coreference file.")

@@ -137,13 +137,15 @@ def read_jsonl(file_path):
 - tag: dialfact/augwow
 - input_file: input file path
 """
-def read_examples(input_file, tag='dialfact', type='all'): 
+def read_examples(input_file, tag='dialfact', type='all', cnt_ctx=1): 
     examples = []
     dict_examples = []
 
     ori_examples = read_jsonl(input_file) # filepath, 'dialfact' or 'augwow'
     ori_examples = ori_examples[:10] # for testing
+
     for sample_idx, sample in enumerate(ori_examples):
+        sample['context'] = sample['context'][-(cnt_ctx):]
         ctx = ' '.join(sample['context'])
         doc_tokens = ctx.split()
         if tag=='dialfact':
