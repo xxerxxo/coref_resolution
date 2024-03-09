@@ -17,6 +17,7 @@ import random
 import re
 import string
 
+from pprint import pformat 
 
 logger = logging.getLogger(__name__)
 
@@ -523,12 +524,6 @@ def _check_is_max_context(doc_spans, cur_span_index, position):
 RawResult_multi = collections.namedtuple("RawResult_multi",
                                    ["unique_id", "start_logits", "end_logits", "answer_num"])
 
-
-'''
-각 질문에 대한 여러 개의 예측을 처리하고 기록하는 데 사용
-주로 BERT와 같은 모델에서 사용되며, 각 질문에 대해 가장 가능성이 높은 시작 위치와 끝 위치를 찾아내어 여러 개의 가능한 답변을 생성
-그런 다음, 이 답변들 중에서 최종 답변을 선택하기 위한 후처리 단계
-'''
 def write_predictions_multi(all_examples, all_features, all_results, n_best_size,
                       max_answer_length, do_lower_case, output_prediction_file,
                       output_nbest_file, output_null_log_odds_file, verbose_logging,
@@ -550,7 +545,13 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
         is_impossible: 해당 예제에 답변이 불가능한지 여부를 나타냅니다(SQuAD 2.0의 경우).
     '''
 
-    # example_index_to_features: 키(key)는 SquadExample의 인덱스(example_index)를 나타내며, 값(value)은 해당 인덱스를 가진 SquadExample으로부터 생성된 모든 InputFeatures 객체들의 리스트
+    """
+    1. 예측 준비
+        목적: 입력 데이터와 모델의 예측 결과에 대한 초기 매핑을 설정합니다.
+        동작:
+            example_index_to_features: 각 예제(SquadExample) 인덱스에 대응하는 입력 특성(InputFeatures)들을 매핑합니다.
+            unique_id_to_result: 각 입력 특성의 고유 ID에 대한 모델 예측 결과를 매핑합니다.
+    """
     example_index_to_features = collections.defaultdict(list)
     for feature in all_features:
         example_index_to_features[feature.example_index].append(feature)
@@ -568,6 +569,13 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
     scores_diff_json = collections.OrderedDict()
 
     id2fakeanswer = {}
+    """
+    2. 각 예제에 대한 예측 처리
+        목적: 각 입력 예제에 대한 최적의 예측 후보를 선별합니다.
+        동작:
+            예제별로 모든 관련 특성을 순회하며, 각 특성에 대한 예측 결과(start_logits, end_logits)를 기반으로 가능한 모든 답변 후보를 생성합니다.
+            "답변 없음"에 대한 예측 점수를 계산하고, 유효한 답변 후보 중 최적의 후보를 선별합니다.
+    """
     for (example_index, example) in enumerate(all_examples):
         features = example_index_to_features[example_index]
 
@@ -638,6 +646,13 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                             start_logit=result.start_logits[start_index],
                             end_logit=result.end_logits[end_index]))
         
+        """
+        3. 최종 예측 목록 생성 및 정렬
+            목적: 각 예제에 대해 최적의 답변 후보를 선별하고 정렬합니다.
+            동작:
+                선별된 예측 후보(prelim_predictions)를 점수(start_logit + end_logit)에 따라 정렬합니다.
+                상위 N개의 후보를 nbest 목록에 추가합니다.
+        """
         fake_answer = sorted(
             fake_answer,
             key=lambda x: (x.start_logit + x.end_logit),
@@ -696,8 +711,6 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                 f1 = (2 * precision * recall) / (precision + recall)
                 return f1
 
-
-
             overlap = False   # 有空改成算f1 的
             for item in nbest:
                 # if (orig_doc_start-5 <= item["orig_doc_start"] and item["orig_doc_start"] <= orig_doc_end+5) or (orig_doc_start-5 <= item["orig_doc_end"] and item["orig_doc_end"] <= orig_doc_end+5):
@@ -720,7 +733,14 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                 break
         id2fakeanswer[feature.example_index] = nbest
 
-
+        """
+        4. 답변 정제 및 최종 선택
+            목적: 최종 답변 후보를 선정합니다.
+            동작:
+                최종 답변 후보(nbest)를 점수에 따라 정렬합니다. 
+                nbest 목록에서 최적의 답변을 선정하고, 필요한 경우 "답변 없음" 포함 여부를 결정
+                즉, 상위 N개의 후보를 최종 예측 목록(all_predictions)에 추가합니다.
+        """
         if version_2_with_negative:
             prelim_predictions.append(
                 _PrelimPrediction(
@@ -729,6 +749,7 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                     end_index=0,
                     start_logit=null_start_logit,
                     end_logit=null_end_logit))
+        
         prelim_predictions = sorted(
             prelim_predictions,
             key=lambda x: (x.start_logit + x.end_logit),
@@ -854,6 +875,16 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
             else:
                 all_predictions[example.qas_id] = best_non_null_entry.text
         all_nbest_json[example.qas_id] = nbest_json
+        
+        logging.info("\n")
+        logging.info('**********************************')
+        logging.info("\n context_text:" + pformat(example.context_text))
+        logging.info("\n found_pronoun:" + pformat(example.found_pronoun))
+        logging.info("\n pronoun_index:" + pformat(example.pronoun_index))
+        logging.info("\n orig_response:" + pformat(example.orig_response))
+        logging.info("\n nbest_json:" + pformat(nbest_json))
+        logging.info('**********************************')
+        logging.info("\n")
 
     with open(output_prediction_file, "w") as writer:
         writer.write(json.dumps(all_predictions, indent=4) + "\n")

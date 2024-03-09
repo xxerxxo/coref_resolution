@@ -1,0 +1,4 @@
+Variable OMP_NUM_THREADS has been set to 8
+
+Loading python/3.10.7
+  Loading requirement: openssl/1.1.1s

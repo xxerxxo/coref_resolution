@@ -49,7 +49,7 @@ from utils_squad import (read_squad_examples, convert_examples_to_features,
                         RawResult_multi, write_predictions_multi)
 
 # from utils_preprocessing import (read_augwow_examples, read_dialfact_examples, resolve_coref_with_augwow)
-from utils_preprocessing_v2 import (read_dialfact_examples_w_pronouns, read_augwow_examples_w_pronouns)#, resolve_coref_with_augwow)
+from utils_preprocessing_v3 import (read_examples)
 # The follwing import is the official SQuAD evaluation script (2.0).
 # You can remove it from the dependencies if you are using this script outside of the library
 # We've added it here for automated tests (see examples/test_examples.py file)
@@ -220,7 +220,7 @@ def evaluate(args, model, tokenizer, prefix=''):
 
 
     # Eval!
-    logger.info("***** Running evaluation {} *****".format(args.result_tag))
+    logger.info("***** Running evaluation {} *****".format(args.tag))
     logger.info("  Num examples = %d", len(dataset))
     logger.info("  Batch size = %d", args.eval_batch_size)
     all_results = []
@@ -257,10 +257,10 @@ def evaluate(args, model, tokenizer, prefix=''):
             all_results.append(result)
 
     # Compute predictions
-    output_prediction_file = os.path.join(args.result_dir, "predictions_{}.json".format(args.result_tag))
-    output_nbest_file = os.path.join(args.result_dir, "nbest_predictions_{}.json".format(args.result_tag))
+    output_prediction_file = os.path.join(args.result_dir, "predictions_{}.json".format(args.tag))
+    output_nbest_file = os.path.join(args.result_dir, "nbest_predictions_{}.json".format(args.tag))
     if args.version_2_with_negative:
-        output_null_log_odds_file = os.path.join(args.output_dir, "null_odds_{}.json".format(args.result_tag))
+        output_null_log_odds_file = os.path.join(args.output_dir, "null_odds_{}.json".format(args.tag))
     else:
         output_null_log_odds_file = None
 
@@ -278,11 +278,12 @@ def evaluate(args, model, tokenizer, prefix=''):
                         args.version_2_with_negative, args.null_score_diff_threshold)
 
     # Evaluate with the official SQuAD script
-    evaluate_options = EVAL_OPTS(data_file=args.predict_file, #/data/scratch/acw722/augwow/train.jsonl
-                                 pred_file=output_prediction_file, #os.path.join(args.result_dir, "predictions_{}.json".format(prefix))
-                                 na_prob_file=output_null_log_odds_file) #
-    results = evaluate_on_squad(evaluate_options)
-    return results
+    # evaluate_options = EVAL_OPTS(data_file=args.predict_file, #/data/scratch/acw722/augwow/train.jsonl
+    #                              pred_file=output_prediction_file, #os.path.join(args.result_dir, "predictions_{}.json".format(prefix))
+    #                              na_prob_file=output_null_log_odds_file) #
+    # results = evaluate_on_squad(evaluate_options)
+    # return results
+    return
 
 
 def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False):
@@ -307,18 +308,12 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                                                 version_2_with_negative=args.version_2_with_negative)
             
         elif args.task == 'augwow':
-            examples, dict_examples = read_augwow_examples_w_pronouns(input_file=input_file)
+            examples, dict_examples = read_examples(input_file, args.task, type)
         
         elif args.task == 'dialfact':
-            # examples, dict_examples = read_dialfact_examples(input_file=input_file)
-            examples, dict_examples = read_dialfact_examples_w_pronouns(input_file=input_file)
+            examples, dict_examples = read_examples(input_file, args.task, type)
 
-        # elif args.task == 'colloquial':
-        #     examples, dict_examples = read_colloquial_examples(input_file=input_file)
-        
-        # store dict_examples as a jsonl in resolved_dir
-        # 'augwow_{}_with_pronouns.jsonl'.format(args.result_tag)
-        with open(args.resolved_dir+'/{}/{}_with_pronouns.jsonl'.format(args.task, args.result_tag), 'w') as f:
+        with open(args.resolved_dir+'/{}/{}_pronouns.jsonl'.format(args.task, args.tag), 'w') as f:
             for item in dict_examples:  
                 f.write(json.dumps(item) + '\n')
                     
@@ -374,8 +369,6 @@ def main():
 
     ## Other parameters
     parser.add_argument("--result_dir", default=None, type=str, required=False) # 추가: 추론결과 파일 저장 디렉토리, 파인튜닝된 모델경로(output_dir)와 다름
-    
-    parser.add_argument("--task", default=None, type=str, required=False) # 추가: 작업 선택, squad or augwow
     parser.add_argument("--train_file", default=None, type=str, required=False,
                         help="SQuAD json for training. E.g., train-v1.1.json")
     parser.add_argument("--config_name", default="", type=str,
@@ -386,9 +379,12 @@ def main():
                         help="Where do you want to store the pre-trained models downloaded from s3")
     parser.add_argument("--resolved_dir", default="", type=str,
                         help="store the jsonl file with found pronouns.")
-    parser.add_argument("--result_tag", default="", type=str,
+    parser.add_argument("--tag", default="", type=str,
                         help="store the jsonl file with found pronouns.") #predictions_{}.json
-
+    parser.add_argument("--task", default="", type=str,
+                        help="dialfact or augwow")
+    parser.add_argument("--type", default="", type=str,
+                        help="valid/test, train/dev")
     # # Additional arguments
     # parser.add_argument("--coref_file", default=None, type=str, required=True,
     #                     help="Path to the coreference file.")
@@ -441,10 +437,7 @@ def main():
                         help="Linear warmup over warmup_steps.")
     parser.add_argument("--n_best_size", default=20, type=int,
                         help="The total number of n-best predictions to generate in the nbest_predictions.json output file.")
-    # parser.add_argument("--max_answer_length", default=30, type=int,
-    #                     help="The maximum length of an answer that can be generated. This is needed because the start "
-    #                          "and end predictions are not conditioned on one another.")
-    parser.add_argument("--max_answer_length", default=10, type=int,
+    parser.add_argument("--max_answer_length", default=30, type=int,
                         help="The maximum length of an answer that can be generated. This is needed because the start "
                              "and end predictions are not conditioned on one another.")
     parser.add_argument("--verbose_logging", action='store_true',
@@ -584,8 +577,8 @@ def main():
             # Evaluate
             result = evaluate(args, model, tokenizer, prefix=global_step)
 
-            result = dict((k + ('_{}'.format(global_step) if global_step else ''), v) for k, v in result.items())
-            results.update(result)
+            # result = dict((k + ('_{}'.format(global_step) if global_step else ''), v) for k, v in result.items())
+            # results.update(result)
 
     logger.info("Results: {}".format(results))
     return results
