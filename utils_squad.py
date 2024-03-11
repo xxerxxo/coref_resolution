@@ -590,7 +590,6 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
         answer_num = 1
         for (feature_index, feature) in enumerate(features):
 
-
             result = unique_id_to_result[feature.unique_id]
 
             # for debug
@@ -876,15 +875,13 @@ def write_predictions_multi(all_examples, all_features, all_results, n_best_size
                 all_predictions[example.qas_id] = best_non_null_entry.text
         all_nbest_json[example.qas_id] = nbest_json
         
-        logging.info("\n")
-        logging.info('**********************************')
-        logging.info("\n context_text:" + pformat(example.context_text))
-        logging.info("\n found_pronoun:" + pformat(example.found_pronoun))
-        logging.info("\n pronoun_index:" + pformat(example.pronoun_index))
-        logging.info("\n orig_response:" + pformat(example.orig_response))
-        logging.info("\n nbest_json:" + pformat(nbest_json))
-        logging.info('**********************************')
-        logging.info("\n")
+        # logging.info('**********************************************')
+        # logging.info(" [context_text] : " + pformat(example.context_text))
+        # logging.info(" [found_pronoun] : " + pformat(example.found_pronoun))
+        # logging.info(" [pronoun_index] : " + pformat(example.pronoun_index))
+        # logging.info(" [orig_response] : " + pformat(example.orig_response))
+        # logging.info(" [nbest_json] : " + pformat(nbest_json))
+        # logging.info('**********************************************')
 
     with open(output_prediction_file, "w") as writer:
         writer.write(json.dumps(all_predictions, indent=4) + "\n")

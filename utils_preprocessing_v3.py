@@ -11,7 +11,7 @@ nlp = spacy.load("en_core_web_sm")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define pronouns list globally
-PRONOUNS = ['he', 'she', 'it', 'they', 'them', 'this', 'these', 'those', 'who', 'whom', 'which', 'whose']
+# PRONOUNS = ['he', 'she', 'it', 'they', 'them', 'this', 'these', 'those', 'who', 'whom', 'which', 'whose']
 
 class SquadExample:
     def __init__(self, qas_id, question_text, doc_tokens, is_impossible, orig_answer_text="", 
@@ -68,19 +68,18 @@ class SquadExample:
 #     else:
 #         return f"Considering the context, '{response}', how is '{pronoun}' utilized or defined?"
 
+PRONOUNS = ['he', 'she', 'it', 'his', 'her', 'hers', 'its', 'their', 'theirs', 'they', 'them']
+
 def construct_query(pronoun, response):
     """Construct a QUOREF style question directly incorporating different types of pronouns."""
     intro = "Based on the context,"
 
     # `us` is considered in the group for "who or what does 'pronoun' refer to?"
-    if pronoun.lower() in ['i', 'me', 'we', 'us', 'you']:
-        return f"{intro} who or what does '{pronoun}' refer to in '{response}'?"
-
-    elif pronoun.lower() in ['he', 'she', 'it']:
+    if pronoun.lower() in ['he', 'she', 'it']:
         return f"{intro} who does '{pronoun}' refer to in '{response}'?"
 
     # Including 'us' in the possessive pronouns group is not suitable due to its usage.
-    elif pronoun.lower() in ['his', 'her', 'hers', 'its', 'my', 'our', 'ours', 'your', 'yours', 'their', 'theirs']:
+    elif pronoun.lower() in ['his', 'her', 'hers', 'its', 'their', 'theirs']:
         return f"{intro} whose '{pronoun}' is mentioned in '{response}'?"
 
     elif pronoun.lower() in ['they', 'them']:
@@ -142,7 +141,7 @@ def read_examples(input_file, tag='dialfact', type='all', cnt_ctx=1):
     dict_examples = []
 
     ori_examples = read_jsonl(input_file) # filepath, 'dialfact' or 'augwow'
-    ori_examples = ori_examples[:10] # for testing
+    # ori_examples = ori_examples[-1000:-980] # for testing
 
     for sample_idx, sample in enumerate(ori_examples):
         
@@ -151,7 +150,6 @@ def read_examples(input_file, tag='dialfact', type='all', cnt_ctx=1):
             sample['context'] = sample['context']  # 리스트 전체를 유지
         else:
             sample['context'] = sample['context'][-cnt_ctx:]  # 마지막 cnt_ctx 개의 요소를 슬라이싱
-        
         ctx = ' '.join(sample['context'])
         doc_tokens = ctx.split()
         
@@ -162,7 +160,7 @@ def read_examples(input_file, tag='dialfact', type='all', cnt_ctx=1):
         pronoun_info = identify_pronouns(response) # [(pronoun_idx, pronoun_text), (pronoun_idx, pronoun_text), ...]
         samples_for_each_response = [] # list of SquadExample for each pronouns in a sample, 샘플 하나당 여러개의 SquadExample이 생성될 수 있음
         if pronoun_info:
-            logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pronoun_info: {pronoun_info}')
+            # logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pronoun_info: {pronoun_info}')
             for pronoun_index, pronoun_text in pronoun_info:
                 question_text = construct_query(pronoun_text, response) # construct question text with the pronoun
                 qas_id = sample['id'] + '_' + str(sample_idx) + '_' + str(pronoun_index) # Unique ID for each example for predicting the reference noun to each sample
