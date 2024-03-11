@@ -136,7 +136,7 @@ def read_jsonl(file_path):
 - tag: dialfact/augwow
 - input_file: input file path
 """
-def read_examples(input_file, tag='dialfact', type='all', cnt_ctx=1): 
+def read_examples(input_file, tag='dialfact', cnt_ctx=1): 
     examples = []
     dict_examples = []
 

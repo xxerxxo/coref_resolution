@@ -1,0 +1,71 @@
+Variable OMP_NUM_THREADS has been set to 8
+
+Loading python/3.10.7
+  Loading requirement: openssl/1.1.1s
+2024-03-11 14:49:41,874 - WARNING - Process rank: -1, device: cuda, n_gpu: 1, distributed training: False, 16-bits training: False
+2024-03-11 14:49:41,893 - INFO - loading configuration file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/config.json
+2024-03-11 14:49:41,894 - INFO - Model config {
+  "attention_probs_dropout_prob": 0.1,
+  "finetuning_task": null,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "layer_norm_eps": 1e-12,
+  "max_position_embeddings": 512,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  "num_labels": 2,
+  "output_attentions": false,
+  "output_hidden_states": false,
+  "output_past": true,
+  "pruned_heads": {},
+  "torchscript": false,
+  "type_vocab_size": 2,
+  "use_bfloat16": false,
+  "vocab_size": 28996
+}
+
+2024-03-11 14:49:41,895 - INFO - Model name '/data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base' not found in model shortcut name list (bert-base-uncased, bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, bert-base-multilingual-cased, bert-base-chinese, bert-base-german-cased, bert-large-uncased-whole-word-masking, bert-large-cased-whole-word-masking, bert-large-uncased-whole-word-masking-finetuned-squad, bert-large-cased-whole-word-masking-finetuned-squad, bert-base-cased-finetuned-mrpc). Assuming '/data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base' is a path or url to a directory containing tokenizer files.
+2024-03-11 14:49:41,897 - INFO - loading file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/vocab.txt
+2024-03-11 14:49:41,897 - INFO - loading file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/added_tokens.json
+2024-03-11 14:49:41,898 - INFO - loading file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/special_tokens_map.json
+2024-03-11 14:49:41,898 - INFO - loading file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/tokenizer_config.json
+2024-03-11 14:49:41,934 - INFO - loading weights file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/pytorch_model.bin
+2024-03-11 14:49:44,955 - INFO - Training/evaluation parameters Namespace(predict_file='/data/scratch/acw722/augwow/data/dev.jsonl', model_type='bert', model_name_or_path='/data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base', output_dir='/data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base', result_dir='/data/scratch/acw722/corefbert/result/inference/augwow', train_file=None, config_name='', tokenizer_name='', cache_dir='', resolved_dir='/data/scratch/acw722/corefbert/result/inference', tag='dev', task='augwow', type='all', cnt_ctx=2, version_2_with_negative=False, null_score_diff_threshold=0.0, max_seq_length=512, doc_stride=64, max_query_length=128, do_train=False, do_eval=True, evaluate_during_training=False, do_lower_case=False, per_gpu_train_batch_size=8, per_gpu_eval_batch_size=16, learning_rate=5e-05, gradient_accumulation_steps=1, weight_decay=0.0, adam_epsilon=1e-08, max_grad_norm=1.0, num_train_epochs=3.0, max_steps=-1, warmup_steps=0, n_best_size=10, max_answer_length=5, verbose_logging=False, logging_steps=50, save_steps=50, eval_all_checkpoints=False, no_cuda=False, overwrite_output_dir=True, overwrite_cache=False, seed=42, local_rank=-1, fp16=False, fp16_opt_level='O1', server_ip='', server_port='', n_gpu=1, device=device(type='cuda'))
+2024-03-11 14:49:44,956 - INFO - Evaluate the following checkpoints: ['/data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base']
+2024-03-11 14:49:44,956 - INFO - loading configuration file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/config.json
+2024-03-11 14:49:44,956 - INFO - Model config {
+  "attention_probs_dropout_prob": 0.1,
+  "finetuning_task": null,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "layer_norm_eps": 1e-12,
+  "max_position_embeddings": 512,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  "num_labels": 2,
+  "output_attentions": false,
+  "output_hidden_states": false,
+  "output_past": true,
+  "pruned_heads": {},
+  "torchscript": false,
+  "type_vocab_size": 2,
+  "use_bfloat16": false,
+  "vocab_size": 28996
+}
+
+2024-03-11 14:49:44,960 - INFO - loading weights file /data/scratch/acw722/corefbert/result/QUOREF_CorefBERT_base/pytorch_model.bin
+2024-03-11 14:49:47,059 - INFO - Creating features from dataset file at /data/scratch/acw722/augwow/data/dev.jsonl
+2024-03-11 14:50:04,846 - INFO - >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Loaded 1541 examples.
+2024-03-11 14:50:08,225 - INFO - Saving features into cached file /data/scratch/acw722/augwow/data/cached_dev_QUOREF_CorefBERT_base_512
+2024-03-11 14:50:09,693 - INFO - ***** Running evaluation dev *****
+2024-03-11 14:50:09,693 - INFO -   Num examples = 1541
+2024-03-11 14:50:09,693 - INFO -   Batch size = 16
+Evaluating:   0%|          | 0/97 [00:00<?, ?it/s]Evaluating:   1%|          | 1/97 [00:01<02:30,  1.56s/it]Evaluating:   2%|▏         | 2/97 [00:01<01:08,  1.39it/s]Evaluating:   3%|▎         | 3/97 [00:01<00:42,  2.22it/s]Evaluating:   4%|▍         | 4/97 [00:01<00:30,  3.08it/s]Evaluating:   5%|▌         | 5/97 [00:02<00:23,  3.93it/s]Evaluating:   6%|▌         | 6/97 [00:02<00:19,  4.70it/s]Evaluating:   7%|▋         | 7/97 [00:02<00:16,  5.38it/s]Evaluating:   8%|▊         | 8/97 [00:02<00:14,  5.95it/s]Evaluating:   9%|▉         | 9/97 [00:02<00:13,  6.41it/s]Evaluating:  10%|█         | 10/97 [00:02<00:12,  6.77it/s]Evaluating:  11%|█▏        | 11/97 [00:02<00:12,  7.03it/s]Evaluating:  12%|█▏        | 12/97 [00:02<00:11,  7.22it/s]Evaluating:  13%|█▎        | 13/97 [00:03<00:11,  7.36it/s]Evaluating:  14%|█▍        | 14/97 [00:03<00:11,  7.47it/s]Evaluating:  15%|█▌        | 15/97 [00:03<00:10,  7.51it/s]Evaluating:  16%|█▋        | 16/97 [00:03<00:10,  7.57it/s]Evaluating:  18%|█▊        | 17/97 [00:03<00:10,  7.63it/s]Evaluating:  19%|█▊        | 18/97 [00:03<00:10,  7.65it/s]Evaluating:  20%|█▉        | 19/97 [00:03<00:10,  7.67it/s]Evaluating:  21%|██        | 20/97 [00:04<00:10,  7.66it/s]Evaluating:  22%|██▏       | 21/97 [00:04<00:09,  7.67it/s]Evaluating:  23%|██▎       | 22/97 [00:04<00:09,  7.68it/s]Evaluating:  24%|██▎       | 23/97 [00:04<00:09,  7.69it/s]Evaluating:  25%|██▍       | 24/97 [00:04<00:09,  7.68it/s]Evaluating:  26%|██▌       | 25/97 [00:04<00:09,  7.69it/s]Evaluating:  27%|██▋       | 26/97 [00:04<00:09,  7.70it/s]Evaluating:  28%|██▊       | 27/97 [00:04<00:09,  7.68it/s]Evaluating:  29%|██▉       | 28/97 [00:05<00:08,  7.69it/s]Evaluating:  30%|██▉       | 29/97 [00:05<00:08,  7.70it/s]Evaluating:  31%|███       | 30/97 [00:05<00:08,  7.70it/s]Evaluating:  32%|███▏      | 31/97 [00:05<00:08,  7.71it/s]Evaluating:  33%|███▎      | 32/97 [00:05<00:08,  7.70it/s]Evaluating:  34%|███▍      | 33/97 [00:05<00:08,  7.67it/s]Evaluating:  35%|███▌      | 34/97 [00:05<00:08,  7.67it/s]Evaluating:  36%|███▌      | 35/97 [00:05<00:08,  7.68it/s]Evaluating:  37%|███▋      | 36/97 [00:06<00:07,  7.68it/s]Evaluating:  38%|███▊      | 37/97 [00:06<00:07,  7.70it/s]Evaluating:  39%|███▉      | 38/97 [00:06<00:07,  7.71it/s]Evaluating:  40%|████      | 39/97 [00:06<00:07,  7.71it/s]Evaluating:  41%|████      | 40/97 [00:06<00:07,  7.70it/s]Evaluating:  42%|████▏     | 41/97 [00:06<00:07,  7.69it/s]Evaluating:  43%|████▎     | 42/97 [00:06<00:07,  7.67it/s]Evaluating:  44%|████▍     | 43/97 [00:07<00:07,  7.66it/s]Evaluating:  45%|████▌     | 44/97 [00:07<00:06,  7.68it/s]Evaluating:  46%|████▋     | 45/97 [00:07<00:06,  7.69it/s]Evaluating:  47%|████▋     | 46/97 [00:07<00:06,  7.70it/s]Evaluating:  48%|████▊     | 47/97 [00:07<00:06,  7.70it/s]Evaluating:  49%|████▉     | 48/97 [00:07<00:06,  7.68it/s]Evaluating:  51%|█████     | 49/97 [00:07<00:06,  7.68it/s]Evaluating:  52%|█████▏    | 50/97 [00:07<00:06,  7.69it/s]Evaluating:  53%|█████▎    | 51/97 [00:08<00:06,  7.51it/s]Evaluating:  54%|█████▎    | 52/97 [00:08<00:05,  7.58it/s]Evaluating:  55%|█████▍    | 53/97 [00:08<00:05,  7.61it/s]Evaluating:  56%|█████▌    | 54/97 [00:08<00:05,  7.62it/s]Evaluating:  57%|█████▋    | 55/97 [00:08<00:05,  7.64it/s]Evaluating:  58%|█████▊    | 56/97 [00:08<00:05,  7.66it/s]Evaluating:  59%|█████▉    | 57/97 [00:08<00:05,  7.66it/s]Evaluating:  60%|█████▉    | 58/97 [00:08<00:05,  7.67it/s]Evaluating:  61%|██████    | 59/97 [00:09<00:04,  7.67it/s]Evaluating:  62%|██████▏   | 60/97 [00:09<00:04,  7.67it/s]Evaluating:  63%|██████▎   | 61/97 [00:09<00:04,  7.68it/s]Evaluating:  64%|██████▍   | 62/97 [00:09<00:04,  7.68it/s]Evaluating:  65%|██████▍   | 63/97 [00:09<00:04,  7.67it/s]Evaluating:  66%|██████▌   | 64/97 [00:09<00:04,  7.68it/s]Evaluating:  67%|██████▋   | 65/97 [00:09<00:04,  7.68it/s]Evaluating:  68%|██████▊   | 66/97 [00:10<00:04,  7.67it/s]Evaluating:  69%|██████▉   | 67/97 [00:10<00:03,  7.69it/s]Evaluating:  70%|███████   | 68/97 [00:10<00:03,  7.68it/s]Evaluating:  71%|███████   | 69/97 [00:10<00:03,  7.66it/s]Evaluating:  72%|███████▏  | 70/97 [00:10<00:03,  7.66it/s]Evaluating:  73%|███████▎  | 71/97 [00:10<00:03,  7.67it/s]Evaluating:  74%|███████▍  | 72/97 [00:10<00:03,  7.67it/s]Evaluating:  75%|███████▌  | 73/97 [00:10<00:03,  7.67it/s]Evaluating:  76%|███████▋  | 74/97 [00:11<00:02,  7.68it/s]Evaluating:  77%|███████▋  | 75/97 [00:11<00:02,  7.68it/s]Evaluating:  78%|███████▊  | 76/97 [00:11<00:02,  7.69it/s]Evaluating:  79%|███████▉  | 77/97 [00:11<00:02,  7.68it/s]Evaluating:  80%|████████  | 78/97 [00:11<00:02,  7.66it/s]Evaluating:  81%|████████▏ | 79/97 [00:11<00:02,  7.66it/s]Evaluating:  82%|████████▏ | 80/97 [00:11<00:02,  7.67it/s]Evaluating:  84%|████████▎ | 81/97 [00:11<00:02,  7.65it/s]Evaluating:  85%|████████▍ | 82/97 [00:12<00:01,  7.66it/s]Evaluating:  86%|████████▌ | 83/97 [00:12<00:01,  7.67it/s]Evaluating:  87%|████████▋ | 84/97 [00:12<00:01,  7.67it/s]Evaluating:  88%|████████▊ | 85/97 [00:12<00:01,  7.68it/s]Evaluating:  89%|████████▊ | 86/97 [00:12<00:01,  7.68it/s]Evaluating:  90%|████████▉ | 87/97 [00:12<00:01,  7.64it/s]Evaluating:  91%|█████████ | 88/97 [00:12<00:01,  7.64it/s]Evaluating:  92%|█████████▏| 89/97 [00:13<00:01,  7.65it/s]Evaluating:  93%|█████████▎| 90/97 [00:13<00:00,  7.65it/s]Evaluating:  94%|█████████▍| 91/97 [00:13<00:00,  7.67it/s]Evaluating:  95%|█████████▍| 92/97 [00:13<00:00,  7.67it/s]Evaluating:  96%|█████████▌| 93/97 [00:13<00:00,  7.68it/s]Evaluating:  97%|█████████▋| 94/97 [00:13<00:00,  7.70it/s]Evaluating:  98%|█████████▊| 95/97 [00:13<00:00,  7.67it/s]Evaluating:  99%|█████████▉| 96/97 [00:13<00:00,  7.63it/s]Evaluating: 100%|██████████| 97/97 [00:13<00:00,  6.93it/s]
+2024-03-11 14:50:23,683 - INFO - Writing predictions to: /data/scratch/acw722/corefbert/result/inference/augwow/predictions_dev.json
+2024-03-11 14:50:24,735 - INFO - Results: {}

@@ -308,12 +308,12 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                                                 version_2_with_negative=args.version_2_with_negative)
             
         elif args.task == 'augwow':
-            examples, dict_examples = read_examples(input_file, args.task, args.type, args.cnt_ctx)
+            examples, dict_examples = read_examples(input_file, args.task, args.cnt_ctx)
         
         elif args.task == 'dialfact':
-            examples, dict_examples = read_examples(input_file, args.task, args.type, args.cnt_ctx)
+            examples, dict_examples = read_examples(input_file, args.task, args.cnt_ctx)
 
-        with open(args.resolved_dir+'/{}/{}_pronouns.jsonl'.format(args.task, args.tag), 'w') as f:
+        with open(args.resolved_dir+'/{}/frame_{}.jsonl'.format(args.task, args.tag), 'w') as f:
             for item in dict_examples:  
                 f.write(json.dumps(item) + '\n')
                     

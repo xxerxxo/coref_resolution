@@ -54,7 +54,7 @@ def generate_filled_sentences(found_pronoun, context, response, pronoun_index, c
     
     return sorted_candidates
 
-def select_predictions(frame_file, pred_file, predictions_file, output_file):
+def select_predictions(frame_file, nbest_file, predictions_file, output_file):
     logging.info('Start selecting predictions.')
     
     frames = []
@@ -63,7 +63,7 @@ def select_predictions(frame_file, pred_file, predictions_file, output_file):
     with jsonlines.open(frame_file) as reader:
         for line in reader:
             frames.append(line)
-    with open(pred_file, 'r') as f:
+    with open(nbest_file, 'r') as f:
         nbest_predictions = json.load(f)
     with open(predictions_file, 'r') as f:
         predictions = json.load(f)
@@ -114,14 +114,14 @@ def select_predictions(frame_file, pred_file, predictions_file, output_file):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--frame_file", default=None, type=str, required=True) #jsonl
-    parser.add_argument("--pred_file", default=None, type=str, required=True) #json
+    parser.add_argument("--nbest_file", default=None, type=str, required=True) #json
     parser.add_argument("--output_file", default=None, type=str, required=True) #json
     parser.add_argument("--predictions_file", default=None, type=str, required=True) #json
     
     args = parser.parse_args()
     pprint(args)
 
-    select_predictions(args.frame_file, args.pred_file,args.predictions_file, args.output_file)
+    select_predictions(args.frame_file, args.nbest_file, args.predictions_file, args.output_file)
 
 if __name__ == "__main__":
     main()
