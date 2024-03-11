@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def read_json_data(json_file_path):
     """
     Read coreference data from a file.
-    --coref_file /data/scratch/acw722/corefbert/result/inference/predictions_v2.json
     """
     json_data = []
     with open(json_file_path, "r", encoding="utf-8") as reader:
@@ -31,7 +30,6 @@ def read_json_data(json_file_path):
 def read_augwow_examples(input_file):
     """
     Read AugWoW examples with the found_pronoun.
-    inpuf_file: /data/scratch/acw722/corefbert/result/resolved_data//augwow_with_pronouns.jsonl
     """
     examples = []
     with open(input_file, "r", encoding="utf-8") as reader:
@@ -44,8 +42,6 @@ def read_augwow_examples(input_file):
 def read_dialfact_examples(input_file):
     """
     Read Dialfact examples with the found_pronoun.
-    /data/scratch/acw722/corefbert/result/resolved_data/dialfact_valid_with_pronouns.jsonl\
-    /data/scratch/acw722/corefbert/result/resolved_data/dialfact_test_with_pronouns.jsonl\
     """
     examples = []
     with open(input_file, "r", encoding="utf-8") as reader:
@@ -75,68 +71,55 @@ def words_to_response(sample):
     new_sample['response'] = ' '.join(words)
     return new_sample
 
-def combine_predictions(args, examples, thebest_data, output_file, preprocess_file):
+def combine_predictions(args, examples, thebest_data, output_file):#, preprocess_file):
     results = {} # key: qas_id, value: item
+    
+    cnt = 0
 
-    if args.task == 'dialfact':
-        cnt = 0
-        for qas_id, pred_noun in thebest_data.items():
+    for qas_id, pred_noun in thebest_data.items():
 
-            sample_id = qas_id[:qas_id[:qas_id.rfind('_')].rfind('_')]
-            pronoun_idx = qas_id[qas_id.rfind('_')+1:]
-            # print(qas_id, '--->', sample_id)
-            # print(qas_id, '--->', pronoun_idx)
-            if sample_id in results: # 이미 results안에 sample이 있는 경우
-                sample = results[sample_id]
-                sample['words'][int(pronoun_idx)] = pred_noun[0]
-            else: # results안에 sample이 없는 경우, 처음으로 등장하는 sample인 경우
-                sample = find_sample(examples, qas_id)
+        sample_id = qas_id[:qas_id[:qas_id.rfind('_')].rfind('_')]
+        pronoun_idx = qas_id[qas_id.rfind('_')+1:]
+        # print(qas_id, '--->', sample_id)
+        # print(qas_id, '--->', pronoun_idx)
+        if sample_id in results: # 이미 results안에 sample이 있는 경우
+            sample = results[sample_id]
+            sample['words'][int(pronoun_idx)] = pred_noun[0]
+        else: # results안에 sample이 없는 경우, 처음으로 등장하는 sample인 경우
+            sample = find_sample(examples, qas_id)
+
+            if args.task == 'dialfact':
                 dict_words = {i: item for i, item in enumerate([token.text for token in nlp(sample['response'])])}
-                dict_words[int(pronoun_idx)] = pred_noun[0]
-                sample['words'] = dict_words
-                results[sample_id] = words_to_response(sample)
-            
-            cnt += 1
-            total_items = len(thebest_data)
-            if cnt % (total_items // 10) == 0:
-                percentage = cnt / total_items * 100
-                print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {percentage:.0f}% complete')
-                pprint(sample)
-            
-    elif args.task == 'augwow':
-        cnt = 0
-        for qas_id, pred_noun in thebest_data.items():
-
-            sample_id = qas_id[:qas_id[:qas_id.rfind('_')].rfind('_')]
-            pronoun_idx = qas_id[qas_id.rfind('_')+1:]
-            # print(qas_id, '--->', sample_id)
-            # print(qas_id, '--->', pronoun_idx)
-            if sample_id in results: # 이미 results안에 sample이 있는 경우
-                sample = results[sample_id]
-                sample['words'][int(pronoun_idx)] = pred_noun[0]
-            else: # results안에 sample이 없는 경우, 처음으로 등장하는 sample인 경우
-                sample = find_sample(examples, qas_id)
+            elif args.task == 'augwow':
                 ori_response = sample['claim'].split('[REPSONSE]: ')[-1]
                 dict_words = {i: item for i, item in enumerate([token.text for token in nlp(ori_response)])}
-                dict_words[int(pronoun_idx)] = pred_noun[0]
-                sample['words'] = dict_words
-                results[sample_id] = words_to_response(sample)
-            
-            cnt += 1
-            total_items = len(thebest_data)
-            if cnt % (total_items // 10) == 0:
-                percentage = cnt / total_items * 100
-                print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {percentage:.0f}% complete')
-                pprint(sample)
+            dict_words[int(pronoun_idx)] = pred_noun[0]
+            sample['words'] = dict_words
+            results[sample_id] = words_to_response(sample)
+        
+        cnt += 1
+        if cnt==10: break ###### for testing
+        # print(f'[The number of thebest_data]: {cnt},  [The length of results(on unique sample id)]: {len(results)}')
+        total_items = len(thebest_data)
+        if cnt % (total_items // 10) == 0:
+            percentage = cnt / total_items * 100
+            print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {percentage:.0f}% complete')
+            pprint(sample)
+        
+        final_results = {}
+        for k, v in results.items():
+            # pprint(v)
+            final_results[k] = words_to_response(v)
+            # pprint(final_results[k])
+            # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>'*3)
 
-
-    write_jsonl(list(results.values()), output_file)
+    write_jsonl(list(final_results.values()), output_file)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--thebest_file", default=None, type=str, required=True) 
     parser.add_argument("--frame_file", default=None, type=str, required=True)
-    parser.add_argument("--preprocess_file", default=None, type=str, required=True)
+    # parser.add_argument("--preprocess_file", default=None, type=str, required=True)
     parser.add_argument("--output_file", default=None, type=str, required=True) 
     parser.add_argument("--task", default=128, type=str)
     parser.add_argument("--prefix", default=128, type=str)
@@ -149,7 +132,7 @@ def main():
     elif args.task == 'dialfact':
         examples = read_dialfact_examples(args.frame_file)
 
-    combine_predictions(args, examples, thebest_data, args.output_file, args.preprocess_file)
+    combine_predictions(args, examples, thebest_data, args.output_file)#, args.preprocess_file)
 
 if __name__ == "__main__":
     main()
