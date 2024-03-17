@@ -136,7 +136,7 @@ def read_jsonl(file_path):
 - tag: dialfact/augwow
 - input_file: input file path
 """
-def read_examples(input_file, tag='dialfact', cnt_ctx=1): 
+def read_examples(input_file, task, cnt_ctx=1): 
     examples = []
     dict_examples = []
 
@@ -153,9 +153,9 @@ def read_examples(input_file, tag='dialfact', cnt_ctx=1):
         ctx = ' '.join(sample['context'])
         doc_tokens = ctx.split()
         
-        if tag=='dialfact':
+        if task=='dialfact':
             response = sample['response']
-        elif tag=='augwow':
+        elif task=='augwow':
             response = sample['claim'].split('[RESPONSE]: ')[-1]
         pronoun_info = identify_pronouns(response) # [(pronoun_idx, pronoun_text), (pronoun_idx, pronoun_text), ...]
         samples_for_each_response = [] # list of SquadExample for each pronouns in a sample, 샘플 하나당 여러개의 SquadExample이 생성될 수 있음

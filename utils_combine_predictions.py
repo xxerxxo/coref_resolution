@@ -11,6 +11,7 @@ import argparse
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
+from tqdm import tqdm
 
 # Spacy NLP initialization
 nlp = spacy.load("en_core_web_sm")
@@ -73,7 +74,7 @@ def words_to_response(task, sample):
     if task == 'dialfact':
         new_sample['response'] = ' '.join(words)
     elif task == 'augwow':
-        new_sample['claim'] = sample['claim'].split("[RESPONSE]:")[0] + "[RESPONSE]: " + ' '.join(words)
+        new_sample['claim'] = sample['claim'].split("[RESPONSE]: ")[0] + "[RESPONSE]:" + ' '.join(words)
     return new_sample
 
 def combine_predictions(args, examples, thebest_data, output_file):#, preprocess_file):
@@ -82,21 +83,23 @@ def combine_predictions(args, examples, thebest_data, output_file):#, preprocess
     cnt_all = 0
     cnt_dot = 0
     cnt_empty = 0
-    for qas_id, pred_noun in thebest_data.items():
-
+    for qas_id, pred_noun in tqdm(thebest_data.items(), desc="Processing", total=len(thebest_data)):
+        
+        if 'empty' in pred_noun[0]:
+            cnt_empty += 1
+            continue
+        elif '.' == pred_noun[0]:
+            cnt_dot += 1
+            continue
+        
         sample_id = qas_id[:qas_id[:qas_id.rfind('_')].rfind('_')]
         pronoun_idx = qas_id[qas_id.rfind('_')+1:]
         # print(qas_id, '--->', sample_id)
         # print(qas_id, '--->', pronoun_idx)
         if sample_id in results: # 이미 results안에 sample이 있는 경우
             sample = results[sample_id]
-            if 'empty' in pred_noun[0]:
-                cnt_empty += 1
-                continue
-            elif '.' == pred_noun[0]:
-                cnt_dot += 1
-                continue
             sample['words'][int(pronoun_idx)] = pred_noun[0]
+
         else: # results안에 sample이 없는 경우, 처음으로 등장하는 sample인 경우
             sample = find_sample(examples, qas_id)
             
@@ -104,35 +107,33 @@ def combine_predictions(args, examples, thebest_data, output_file):#, preprocess
             if args.task == 'dialfact':
                 ori_response = sample['response']
             elif args.task == 'augwow':
-                ori_response = sample['claim'].split('[RESPONSE]:')[-1].lstrip()
-            
-            dict_words = {i: item for i, item in enumerate([token.text for token in nlp(ori_response)])}
-            if 'empty' in pred_noun[0]:
-                cnt_empty += 1
-                continue
-            elif '.' == pred_noun[0]:
-                cnt_dot += 1
-                continue
+                ori_response = sample['claim'].split('[RESPONSE]:')[-1]
+            # print(f'ori_response: {ori_response}')
+            # print(f'pred_noun: {pred_noun}')
+            # print(f'pred_noun[0]: {pred_noun[0]}')
+            dict_words = {i: item for i, item in enumerate([token.text for token in nlp(ori_response.strip())])}
             dict_words[int(pronoun_idx)] = pred_noun[0]
             sample['words'] = dict_words
             results[sample_id] = sample
+        # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {sample["words"]}')
+        # print()
         
         cnt_all += 1
-        # if cnt==10: break ###### for testing
-
-        # print(f'[The number of thebest_data]: {cnt},  [The length of results(on unique sample id)]: {len(results)}')
-        total_items = len(thebest_data)
-        if cnt_all % (total_items // 10) == 0:
-            percentage = cnt_all / total_items * 100
-            logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {percentage:.0f}% complete')
-            logging.debug(sample)
+        # if cnt_all == 10: break
         
-        final_results = {}
-        for sample_id, sample in results.items():
-            # pprint(v)
-            final_results[sample_id] = words_to_response(args.task, sample)
-            # pprint(final_results[k])
-            # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>'*3)
+        # print(f'[The number of thebest_data]: {cnt},  [The length of results(on unique sample id)]: {len(results)}')
+        # total_items = len(results)
+        # if cnt_all % (total_items // 10) == 0:
+        #     percentage = cnt_all / total_items * 100
+        #     logging.info(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>> {percentage:.0f}% complete')
+        #     logging.debug(sample)
+        
+    final_results = {}
+    for sample_id, sample in results.items():
+        # pprint(v)
+        final_results[sample_id] = words_to_response(args.task, sample)
+        # pprint(final_results[k])
+        # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>'*3)
     
     logging.info(f'[The number of thebest_data(cnt_all)]: {cnt_all}')
     logging.info(f'[The number of the predicted "empty"]: {cnt_empty}')

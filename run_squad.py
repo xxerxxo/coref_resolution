@@ -380,7 +380,7 @@ def main():
     parser.add_argument("--resolved_dir", default="", type=str,
                         help="store the jsonl file with found pronouns.")
     parser.add_argument("--tag", default="", type=str,
-                        help="store the jsonl file with found pronouns.") #predictions_{}.json
+                        help="valid/test/dev/train") #predictions_{}.json
     parser.add_argument("--task", default="", type=str,
                         help="dialfact or augwow")
     parser.add_argument("--type", default="", type=str,
