@@ -145,11 +145,12 @@ def read_examples(input_file, task, cnt_ctx=1):
 
     for sample_idx, sample in enumerate(ori_examples):
         
-        # slicing context
-        if cnt_ctx > len(sample['context']):  # sample['context']의 길이가 cnt_ctx보다 작은 경우를 처리
-            sample['context'] = sample['context']  # 리스트 전체를 유지
-        else:
-            sample['context'] = sample['context'][-cnt_ctx:]  # 마지막 cnt_ctx 개의 요소를 슬라이싱
+        # # slicing context
+        # if cnt_ctx > len(sample['context']):  # sample['context']의 길이가 cnt_ctx보다 작은 경우를 처리
+        #     sample['context'] = sample['context']  # 리스트 전체를 유지
+        # else:
+        #     sample['context'] = sample['context'][-cnt_ctx:]  # 마지막 cnt_ctx 개의 요소를 슬라이싱
+        sample['context'] = sample['context']
         ctx = ' '.join(sample['context'])
         doc_tokens = ctx.split()
         
